@@ -1,8 +1,3 @@
----
-
-### src/core/coherence_metric.py
-
-```python
 """
 MCPM Core: Systemic Coherence Measurement
 
