@@ -21,13 +21,19 @@ Mathematical Collapse-Prevention Model (MCPM) — a framework that measures syst
 ├── LICENSE                            # MIT License
 ├── docs/
 │   └── TRUTH_TELLING.md              # Measurement vs Control philosophy
+├── examples/
+│   ├── community_year.csv            # 12-month rural-community dataset
+│   └── run_community_year.py         # Loads CSV, prints M(S) + verdict per month
+├── tests/                             # Stdlib unittest suites (one per module)
 └── src/
     ├── core/
     │   ├── coherence_metric.py        # Core M(S) formula implementation
     │   └── golden_ratio_trust.py      # Trust emergence model (phi-ratio patterns)
     └── measurement/
+        ├── coherence_verdict.py       # GREEN/AMBER/RED/BLACK signal layer
         ├── empathy_types.py           # Empathy paradigm coherence comparison
-        └── replacement_analysis.py    # Replacement scenario thermodynamic analysis
+        ├── replacement_analysis.py    # Replacement scenario thermodynamic analysis
+        └── sensitivity.py             # Finite-difference ∂M/∂x per input
 ```
 
 ## Key Modules
@@ -46,6 +52,12 @@ Analyzes whether replacing System A with System B makes thermodynamic sense. Inc
 
 ### `src/measurement/coherence_verdict.py`
 Translates an `M(S)` reading (plus optional history) into a four-band signal — `GREEN / AMBER / RED / BLACK` — with trajectory classification, linear time-to-collapse projection, and irreversibility detection. Adapted from the verdict layer of the Metabolic Accounting framework.
+
+### `src/measurement/sensitivity.py`
+Central-difference perturbation of each input to M(S), returning signed slopes ranked by magnitude. Reveals which parameter dominates the reading at a given operating point — a transparency tool, not an optimizer.
+
+### `examples/`
+Worked scenarios that load real-shaped data and run it through the framework. `run_community_year.py` walks a small rural community through twelve months of erosion and prints the signal trajectory.
 
 ## Language & Dependencies
 
