@@ -44,22 +44,37 @@ Compares coherence of empathy paradigms: Tribal (negative coherence), Relational
 ### `src/measurement/replacement_analysis.py`
 Analyzes whether replacing System A with System B makes thermodynamic sense. Includes ethical red flag detection (human replacement without consent, coherence destruction). Verdicts range from THERMODYNAMICALLY_SUPERIOR to THERMODYNAMICALLY_STUPID.
 
+### `src/measurement/coherence_verdict.py`
+Translates an `M(S)` reading (plus optional history) into a four-band signal — `GREEN / AMBER / RED / BLACK` — with trajectory classification, linear time-to-collapse projection, and irreversibility detection. Adapted from the verdict layer of the Metabolic Accounting framework.
+
 ## Language & Dependencies
 
 - **Python 3.8+**
 - **numpy** — matrix operations and coupling functions
-- **Standard library** — `dataclasses`, `enum`, `typing`
-- No `requirements.txt` or `pyproject.toml` exists; install numpy manually: `pip install numpy`
+- **Standard library** — `dataclasses`, `enum`, `typing`, `unittest`
+
+Install the package (pulls numpy automatically):
+
+```bash
+pip install -e .
+```
 
 ## Running the Code
 
 All source files have `if __name__ == "__main__":` demo blocks:
 
 ```bash
-python src/core/coherence_metric.py
-python src/core/golden_ratio_trust.py
-python src/measurement/empathy_types.py
-python src/measurement/replacement_analysis.py
+python -m src.core.coherence_metric
+python -m src.core.golden_ratio_trust
+python -m src.measurement.empathy_types
+python -m src.measurement.replacement_analysis
+python -m src.measurement.coherence_verdict
+```
+
+Run the test suite (stdlib `unittest`, no external test runner required):
+
+```bash
+python -m unittest discover -v tests
 ```
 
 ## Development Conventions
@@ -76,8 +91,8 @@ python src/measurement/replacement_analysis.py
 - Descriptive subject line (e.g., "Create coherence_metric.py", "Add Meta-Framework Note on Automated Suppression")
 - No conventional commit prefixes (no `feat:`, `fix:`, etc.)
 
-### No CI/CD, Tests, or Linting
-There are currently no test files, CI workflows, or linting/formatting configurations in the repository. When adding tests, follow standard pytest conventions.
+### Tests & CI
+Stdlib `unittest` suites live in `tests/` — one file per module. They are *falsifiable*: each test pins a claim the framework makes (e.g. `zero diversity ⇒ BLACK signal`, `tribal empathy ⇒ negative M(S)`, `trust chamber growth follows the phi ratio`). GitHub Actions runs them on Python 3.9/3.11/3.12 via `.github/workflows/ci.yml`. No linter is configured yet.
 
 ## Design Principles (Critical for AI Assistants)
 
