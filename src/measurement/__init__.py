@@ -16,6 +16,12 @@ from .empathy_types import (
     compare_empathy_types,
 )
 from .replacement_analysis import ReplacementAnalysis, ReplacementScenario
+from .sensitivity import (
+    PARAMETERS,
+    SensitivityReading,
+    format_sensitivity,
+    sensitivity,
+)
 
 __all__ = [
     "CoherenceVerdict",
@@ -31,4 +37,8 @@ __all__ = [
     "compare_empathy_types",
     "ReplacementAnalysis",
     "ReplacementScenario",
+    "PARAMETERS",
+    "SensitivityReading",
+    "format_sensitivity",
+    "sensitivity",
 ]
