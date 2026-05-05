@@ -1,5 +1,15 @@
 """Measurement utilities built on top of the core coherence primitives."""
 
+from .ai_forecast_audit import (
+    ComputeBurden,
+    ForecastRecord,
+    GroundTruthRecord,
+    aggregate_audit,
+    compute_forecast_error,
+    compute_human_equivalent_years,
+    compute_to_accuracy_ratio,
+    systematic_bias_detection,
+)
 from .coherence_verdict import (
     CoherenceVerdict,
     assess,
@@ -41,4 +51,12 @@ __all__ = [
     "SensitivityReading",
     "format_sensitivity",
     "sensitivity",
+    "ForecastRecord",
+    "GroundTruthRecord",
+    "ComputeBurden",
+    "compute_forecast_error",
+    "systematic_bias_detection",
+    "compute_human_equivalent_years",
+    "compute_to_accuracy_ratio",
+    "aggregate_audit",
 ]
