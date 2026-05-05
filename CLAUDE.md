@@ -33,6 +33,7 @@ Mathematical Collapse-Prevention Model (MCPM) — a framework that measures syst
         ├── ai_forecast_audit.py           # Institutional forecast accuracy + compute burden audit
         ├── coherence_verdict.py           # GREEN/AMBER/RED/BLACK signal layer
         ├── empathy_types.py               # Empathy paradigm coherence comparison
+        ├── multi_model_peer_review.py     # AI-to-AI cross-validation + consensus vs ground truth
         ├── replacement_analysis.py        # Replacement scenario thermodynamic analysis
         ├── sensitivity.py                 # Finite-difference ∂M/∂x per input
         └── validation_timeline_audit.py   # Forecast validation schedule + institutional avoidance flags
@@ -63,6 +64,9 @@ Audits institutional AI / economic forecasts against independent public ground t
 
 ### `src/measurement/validation_timeline_audit.py`
 Companion to `ai_forecast_audit`. Quantifies how long a forecast should take to validate, given the human-equivalent compute behind it, and flags when an institution invokes "complex systems need more time" past the threshold where ground truth is already conclusive. Three layers: traditional human validation timeline (per-domain defaults), AI-accelerated window (baseline / speedup factor), and gap analysis that flags `INSTITUTIONAL_AVOIDANCE_DETECTED` or `VALIDATION_OVERDUE`. Standard library only. Class: `ValidationTimelineRecord`. Functions: `baseline_validation_window`, `accelerated_validation_window`, `gap_analysis`, `audit_timeline`.
+
+### `src/measurement/multi_model_peer_review.py`
+AI-to-AI peer review. Independent models with different training corpora, architectures, or vendors run the same forecast; the module reports convergence (coefficient of variation), per-model accuracy against ground truth, and Tukey-fence drift flags identifying outlier models. The peer-review verdict cross-references convergence with ground truth so consensus cannot launder a falsified prediction (`CONSENSUS_AND_VALIDATED` vs `CONSENSUS_BUT_FALSIFIED_BY_GROUND_TRUTH` vs `CONSENSUS_AWAITING_GROUND_TRUTH` vs `PARTIAL_CONSENSUS_REQUIRES_MORE_MODELS` vs `FRAGMENTED_NO_CONSENSUS`). Standard library only. Classes: `ModelPrediction`, `GroundTruthPoint`. Functions: `convergence_metrics`, `accuracy_vs_ground_truth`, `divergence_flags`, `peer_review`.
 
 ### `examples/`
 Worked scenarios that load real-shaped data and run it through the framework. `run_community_year.py` walks a small rural community through twelve months of erosion and prints the signal trajectory.

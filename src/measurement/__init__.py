@@ -25,6 +25,14 @@ from .empathy_types import (
     TribalEmpathy,
     compare_empathy_types,
 )
+from .multi_model_peer_review import (
+    GroundTruthPoint,
+    ModelPrediction,
+    accuracy_vs_ground_truth,
+    convergence_metrics,
+    divergence_flags,
+    peer_review,
+)
 from .replacement_analysis import ReplacementAnalysis, ReplacementScenario
 from .sensitivity import (
     PARAMETERS,
@@ -73,4 +81,10 @@ __all__ = [
     "accelerated_validation_window",
     "gap_analysis",
     "audit_timeline",
+    "ModelPrediction",
+    "GroundTruthPoint",
+    "convergence_metrics",
+    "accuracy_vs_ground_truth",
+    "divergence_flags",
+    "peer_review",
 ]
