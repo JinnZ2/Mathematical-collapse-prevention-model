@@ -30,11 +30,12 @@ Mathematical Collapse-Prevention Model (MCPM) — a framework that measures syst
     │   ├── coherence_metric.py        # Core M(S) formula implementation
     │   └── golden_ratio_trust.py      # Trust emergence model (phi-ratio patterns)
     └── measurement/
-        ├── ai_forecast_audit.py       # Institutional forecast accuracy + compute burden audit
-        ├── coherence_verdict.py       # GREEN/AMBER/RED/BLACK signal layer
-        ├── empathy_types.py           # Empathy paradigm coherence comparison
-        ├── replacement_analysis.py    # Replacement scenario thermodynamic analysis
-        └── sensitivity.py             # Finite-difference ∂M/∂x per input
+        ├── ai_forecast_audit.py           # Institutional forecast accuracy + compute burden audit
+        ├── coherence_verdict.py           # GREEN/AMBER/RED/BLACK signal layer
+        ├── empathy_types.py               # Empathy paradigm coherence comparison
+        ├── replacement_analysis.py        # Replacement scenario thermodynamic analysis
+        ├── sensitivity.py                 # Finite-difference ∂M/∂x per input
+        └── validation_timeline_audit.py   # Forecast validation schedule + institutional avoidance flags
 ```
 
 ## Key Modules
@@ -59,6 +60,9 @@ Central-difference perturbation of each input to M(S), returning signed slopes r
 
 ### `src/measurement/ai_forecast_audit.py`
 Audits institutional AI / economic forecasts against independent public ground truth (BLS, Census, court bankruptcy data, Federal Reserve raw data). Two parts: forecast accuracy with systematic-bias detection, and compute-burden quantification (GPU-hours, researcher-years, labor-hours) translated into human-equivalent research years per percentage point of accuracy. Standard library only. Classes: `ForecastRecord`, `GroundTruthRecord`, `ComputeBurden`. Functions: `compute_forecast_error`, `systematic_bias_detection`, `compute_to_accuracy_ratio`, `aggregate_audit`.
+
+### `src/measurement/validation_timeline_audit.py`
+Companion to `ai_forecast_audit`. Quantifies how long a forecast should take to validate, given the human-equivalent compute behind it, and flags when an institution invokes "complex systems need more time" past the threshold where ground truth is already conclusive. Three layers: traditional human validation timeline (per-domain defaults), AI-accelerated window (baseline / speedup factor), and gap analysis that flags `INSTITUTIONAL_AVOIDANCE_DETECTED` or `VALIDATION_OVERDUE`. Standard library only. Class: `ValidationTimelineRecord`. Functions: `baseline_validation_window`, `accelerated_validation_window`, `gap_analysis`, `audit_timeline`.
 
 ### `examples/`
 Worked scenarios that load real-shaped data and run it through the framework. `run_community_year.py` walks a small rural community through twelve months of erosion and prints the signal trajectory.

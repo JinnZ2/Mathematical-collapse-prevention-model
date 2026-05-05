@@ -32,6 +32,14 @@ from .sensitivity import (
     format_sensitivity,
     sensitivity,
 )
+from .validation_timeline_audit import (
+    DEFAULT_BASELINE_VALIDATION_YEARS,
+    ValidationTimelineRecord,
+    accelerated_validation_window,
+    audit_timeline,
+    baseline_validation_window,
+    gap_analysis,
+)
 
 __all__ = [
     "CoherenceVerdict",
@@ -59,4 +67,10 @@ __all__ = [
     "compute_human_equivalent_years",
     "compute_to_accuracy_ratio",
     "aggregate_audit",
+    "DEFAULT_BASELINE_VALIDATION_YEARS",
+    "ValidationTimelineRecord",
+    "baseline_validation_window",
+    "accelerated_validation_window",
+    "gap_analysis",
+    "audit_timeline",
 ]
