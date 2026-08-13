@@ -227,27 +227,35 @@ class ValidityReweighter:
 
     # --------------------------------------------------------
 
-    def raw_citation_weight(self, claim_id: str) -> float:
-        """
-        Sum of citation counts across studies asserting this claim.
-        Normalized to 0-1 by max in corpus.
-        """
-        if not self.studies:
-            return 0.0
-
-        max_citations = max(
-            (s.citation_count for s in self.studies.values()),
-            default=1
-        )
-        if max_citations == 0:
-            return 0.0
-
-        total = sum(
+    def _claim_citation_total(self, claim_id: str) -> int:
+        return sum(
             self.studies[sid].citation_count
             for sid in self.claim_to_studies.get(claim_id, [])
             if sid in self.studies
         )
-        return round(total / max_citations, 3)
+
+    def raw_citation_weight(self, claim_id: str) -> float:
+        """
+        Sum of citation counts across studies asserting this claim,
+        normalized to 0-1 by the largest claim total in the corpus.
+        Keeps the result on the same scale as validity_weight so the
+        divergence report is apples-to-apples.
+        """
+        if not self.studies:
+            return 0.0
+
+        max_claim_total = max(
+            (
+                self._claim_citation_total(cid)
+                for cid in self.engine.claims
+            ),
+            default=0,
+        )
+        if max_claim_total == 0:
+            return 0.0
+
+        total = self._claim_citation_total(claim_id)
+        return round(total / max_claim_total, 3)
 
     # --------------------------------------------------------
     # FINAL WEIGHTING
