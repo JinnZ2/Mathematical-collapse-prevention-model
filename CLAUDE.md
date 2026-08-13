@@ -31,7 +31,10 @@ Mathematical Collapse-Prevention Model (MCPM) — a framework that measures syst
     │   └── golden_ratio_trust.py      # Trust emergence model (phi-ratio patterns)
     └── measurement/
         ├── ai_forecast_audit.py           # Institutional forecast accuracy + compute burden audit
+        ├── audit_bridge.py                # Standalone audits -> M(S) inputs
+        ├── calibration.py                 # Cited derivations of R_e/A/D/L from measured data
         ├── coherence_verdict.py           # GREEN/AMBER/RED/BLACK signal layer
+        ├── early_warning.py               # Critical slowing down + rate-induced tipping
         ├── empathy_types.py               # Empathy paradigm coherence comparison
         ├── multi_model_peer_review.py     # AI-to-AI cross-validation + consensus vs ground truth
         ├── replacement_analysis.py        # Replacement scenario thermodynamic analysis
@@ -68,14 +71,27 @@ Companion to `ai_forecast_audit`. Quantifies how long a forecast should take to 
 ### `src/measurement/multi_model_peer_review.py`
 AI-to-AI peer review. Independent models with different training corpora, architectures, or vendors run the same forecast; the module reports convergence (coefficient of variation), per-model accuracy against ground truth, and Tukey-fence drift flags identifying outlier models. The peer-review verdict cross-references convergence with ground truth so consensus cannot launder a falsified prediction (`CONSENSUS_AND_VALIDATED` vs `CONSENSUS_BUT_FALSIFIED_BY_GROUND_TRUTH` vs `CONSENSUS_AWAITING_GROUND_TRUTH` vs `PARTIAL_CONSENSUS_REQUIRES_MORE_MODELS` vs `FRAGMENTED_NO_CONSENSUS`). Standard library only. Classes: `ModelPrediction`, `GroundTruthPoint`. Functions: `convergence_metrics`, `accuracy_vs_ground_truth`, `divergence_flags`, `peer_review`.
 
+### `src/measurement/early_warning.py`
+Critical-slowing-down detection on any monitored series: lag-1 autocorrelation, rolling variance, Kendall tau trend of each, return time `T_r = -dt/ln(alpha)`, plus a rate-induced-tipping channel comparing `d(forcing)/dt` against `A`. Observed tau is tested against an **AR(1) surrogate null** rather than a bare threshold — overlapping windows make the indicator series autocorrelated, so a fixed `|tau| >= 0.5` fires on ~40% of stationary series. Surrogate generation is explicitly seeded so readings stay reproducible. Measured operating characteristics (~75% detection, ~8% false alarm) are documented in the module docstring and pinned by tests. Standard library only. Classes: `EarlyWarningReading`, `RateTippingReading`. Functions: `lag1_autocorrelation`, `return_time`, `kendall_tau`, `ar1_surrogates`, `tau_significance`, `critical_slowing_down`, `rate_induced_tipping`.
+
+### `src/measurement/calibration.py`
+Named, cited derivations of M(S) inputs from measured data, replacing hand-supplied floats. Every adapter returns a `Calibration` carrying value, source, method, inputs and caveats — the citation is machine-readable, not a comment. Covers `R_e` (aerobic scope / OCLTT, ATP death floor), `A` (recovery rate from AR(1) or from timed recovery events, hormetic ceiling at 1.6×), `D` (Loreau response-diversity synchrony index, Hill numbers, model collapse under synthetic contamination), `L` (exponential attrition, knowledge half-life, audited false fraction, independent-loss composition), and coupling bounds (May's `σ√(SC) < d`, Buldyrev interdependent percolation). Standard library only.
+
+### `src/measurement/audit_bridge.py`
+Connects the four standalone audit subsystems to the core metric — previously they produced verdicts M(S) never saw. `from_business_audit` and `from_dependency_graph` return a `BridgedSystem` (state + metric + calibrations + notes), where **every term assignment states its assumption in the output**. Supplies `phi_coupling_optimum` (diagonal 1/φ, off-diagonal 1/φ²) because the core default C* = I/φ has an off-diagonal target of zero, making "too weak = fragmented" unexpressible. The dependency bridge probes the graph across a stress gradient rather than reading declared attributes, and flags when zero diversity is an artifact of min-bottleneck propagation rather than a property of the system.
+
 ### `examples/`
 Worked scenarios that load real-shaped data and run it through the framework. `run_community_year.py` walks a small rural community through twelve months of erosion and prints the signal trajectory.
 
 ## Language & Dependencies
 
-- **Python 3.8+**
+- **Python 3.8+** (CI runs 3.9 / 3.11 / 3.12)
 - **numpy** — matrix operations and coupling functions
-- **Standard library** — `dataclasses`, `enum`, `typing`, `unittest`
+- **Standard library** — `dataclasses`, `enum`, `typing`, `random`, `unittest`
+
+Prefer the standard library for new measurement modules. `early_warning`,
+`calibration`, and the audit modules are stdlib-only by design; numpy is
+required only where the coupling matrix is involved.
 
 Install the package (pulls numpy automatically):
 
@@ -93,7 +109,14 @@ python -m src.core.golden_ratio_trust
 python -m src.measurement.empathy_types
 python -m src.measurement.replacement_analysis
 python -m src.measurement.coherence_verdict
+python -m src.measurement.early_warning
+python -m src.measurement.calibration
+python -m src.measurement.audit_bridge
 ```
+
+Run from the repository root. `audit_bridge` imports the top-level
+`business_audit` / `dependency_audit` packages, which resolve as namespace
+packages only from there.
 
 Run the test suite (stdlib `unittest`, no external test runner required):
 
@@ -109,6 +132,14 @@ python -m unittest discover -v tests
 - Enums for finite state sets
 - Descriptive docstrings on all classes and key methods
 - Constants defined at module level (e.g., `PHI = 1.618033988749895`)
+- **Carry provenance in the output, not just in comments.** Where a number
+  comes from a published relationship, return its source and caveats
+  alongside it (`Calibration.source`, `BridgedSystem.notes`). Where a
+  choice is arbitrary — a squashing function, a normalization — say so in
+  the same output rather than letting it read as measured.
+- **Report absent evidence as absent, not as zero.** `INSUFFICIENT_DATA`
+  is a statement about the data; it must never be phrased as a statement
+  about the system's health.
 
 ### Commit Messages
 - Capitalize first letter
