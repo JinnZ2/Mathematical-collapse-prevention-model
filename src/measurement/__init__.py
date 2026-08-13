@@ -16,6 +16,8 @@ from .audit_bridge import (
     format_bridge,
     from_business_audit,
     from_dependency_graph,
+    from_premise_audit,
+    from_substrate_audit,
     phi_coupling_optimum,
 )
 from .calibration import (
@@ -117,6 +119,8 @@ __all__ = [
     "coupling_matrix",
     "from_business_audit",
     "from_dependency_graph",
+    "from_substrate_audit",
+    "from_premise_audit",
     "format_bridge",
     "CoherenceVerdict",
     "assess",
