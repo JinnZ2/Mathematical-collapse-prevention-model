@@ -108,6 +108,44 @@ D = D_response_diversity([                  # response diversity, not headcount
 ])
 ```
 
+### Where the coupling optimum comes from
+
+`f(C)` is supposed to peak at intermediate coupling — "too weak =
+fragmented, too strong = rigid." Implemented as a bump around a chosen
+`C*`, that is an assertion: move `C*` and the optimum moves with it.
+Synchronization theory derives the same shape with no free parameter.
+
+For units coupled through a network, the synchronous state is stable
+exactly when every scaled Laplacian eigenvalue lands inside the Master
+Stability Function's negative region, `ν₁ < σλᵢ < ν₂`
+([Pecora & Carroll 1998](https://doi.org/10.1103/PhysRevLett.80.2109)):
+
+```python
+import numpy as np
+from src.measurement.coupling_physics import MSFWindow, coupling_coherence, format_coupling
+
+window = MSFWindow(nu_lower=0.2, nu_upper=4.0)   # measured from your node dynamics
+ring = np.array([[0,1,0,0,1],[1,0,1,0,0],[0,1,0,1,0],[0,0,1,0,1],[1,0,0,1,0]], float)
+
+print(format_coupling(coupling_coherence(0.4, ring, window)))
+```
+
+Three things fall out that the bump form cannot express:
+
+- **The interior optimum is a property of the dynamics, not a law.**
+  [Huang et al. 2009](https://doi.org/10.1103/PhysRevE.80.036204) prove
+  only three MSF classes are possible. Only Class III has a bounded
+  window; Class II has a threshold and no upper penalty at all. This
+  module reports the class instead of assuming a peak exists.
+- **Fragmentation is structural, not mistuning.** A disconnected network
+  has `λ₂ = 0`, so *no* coupling strength synchronizes it. That is a
+  different failure from being undercoupled, and it is reported as one.
+- **Some networks cannot be fixed by tuning.** Both bounds are
+  satisfiable only when `λ_N/λ₂ < ν₂/ν₁`
+  ([Barahona & Pecora 2002](https://doi.org/10.1103/PhysRevLett.89.054101))
+  — topology on the left, dynamics on the right. Above that, the remedy
+  is a different network, not a different coupling strength.
+
 ### How much does the reading actually determine?
 
 M(S) returns one number with no error bar, and that number reads as
@@ -169,11 +207,13 @@ systems give none by construction. The module says so in its own output.
 │       ├── ai_forecast_audit.py       # forecast accuracy + compute burden
 │       ├── calibration.py             # cited derivations of R_e/A/D/L
 │       ├── coherence_verdict.py       # GREEN/AMBER/RED/BLACK signal layer
+│       ├── coupling_physics.py        # f(C) optimum from synchronization stability
 │       ├── early_warning.py           # critical slowing down, rate tipping
 │       ├── empathy_types.py           # empathy paradigm comparison
 │       ├── multi_model_peer_review.py # AI-to-AI cross-validation
 │       ├── replacement_analysis.py    # replacement thermodynamics
 │       ├── sensitivity.py             # ∂M/∂x per input
+│       ├── uncertainty.py             # interval + Monte Carlo propagation
 │       └── validation_timeline_audit.py
 ├── business_audit/                    # business resilience self-audit
 ├── dependency_audit/                  # refinery dependency graph
@@ -190,6 +230,8 @@ Every module has a runnable demo:
 python -m src.core.coherence_metric
 python -m src.measurement.early_warning
 python -m src.measurement.calibration
+python -m src.measurement.coupling_physics
+python -m src.measurement.uncertainty
 python -m src.measurement.audit_bridge
 ```
 

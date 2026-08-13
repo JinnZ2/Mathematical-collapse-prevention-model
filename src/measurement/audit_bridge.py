@@ -28,6 +28,16 @@ so that both an unconnected system and a rigidly over-connected one score
 below a moderately connected one. That is the framework's stated design
 (too weak = fragmented, too strong = rigid) made arithmetic.
 
+**That optimum is a placeholder, and the golden ratio in it is an
+aesthetic choice, not a measurement.** Where the actual coupling
+topology is known, `coupling_physics` derives the same shape from
+synchronization stability instead: the window is bounded below because
+the slowest network mode fails to lock and above because the fastest one
+goes unstable, with no free parameter to tune. These bridges cannot use
+it, because an audit hands them a scalar vulnerability index rather than
+a network — a scalar has no Laplacian spectrum. Prefer the derived
+version whenever you have the graph.
+
 MEASUREMENT, NOT CONTROL
 ------------------------
 A bridge translates an audit into a reading. It does not rank the audited
@@ -83,6 +93,13 @@ def phi_coupling_optimum(n: int) -> np.ndarray:
     fully decoupled system and a rigidly coupled one are both penalized,
     which is what "optimal at intermediate coupling" has to mean if it
     means anything.
+
+    The *shape* is right and the golden ratio is not: nothing in the
+    stability literature puts the optimum at 1/phi^2. This is a stand-in
+    for use when only a scalar coupling summary is available. With a real
+    network in hand, `coupling_physics.coupling_coherence` derives the
+    location of the optimum from the Laplacian spectrum and the node
+    dynamics rather than choosing it.
     """
     if n < 1:
         raise ValueError("coupling optimum needs at least one component")

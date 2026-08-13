@@ -37,6 +37,17 @@ from .calibration import (
     interdependence_penalty,
     may_stability_ceiling,
 )
+from .coupling_physics import (
+    CouplingReading,
+    MSFWindow,
+    SpectrumReading,
+    coupling_coherence,
+    format_coupling,
+    laplacian,
+    optimal_coupling,
+    spectrum,
+    synchronizable,
+)
 from .coherence_verdict import (
     CoherenceVerdict,
     assess,
@@ -148,6 +159,15 @@ __all__ = [
     "monte_carlo",
     "percentile",
     "format_uncertainty",
+    "MSFWindow",
+    "SpectrumReading",
+    "CouplingReading",
+    "laplacian",
+    "spectrum",
+    "synchronizable",
+    "optimal_coupling",
+    "coupling_coherence",
+    "format_coupling",
     "CoherenceVerdict",
     "assess",
     "format_verdict",
