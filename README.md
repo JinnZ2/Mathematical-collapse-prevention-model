@@ -108,6 +108,36 @@ D = D_response_diversity([                  # response diversity, not headcount
 ])
 ```
 
+### How much does the reading actually determine?
+
+M(S) returns one number with no error bar, and that number reads as
+precise. Because the gain term is a product, five uncertain inputs
+compound into a result far less determined than it looks:
+
+```python
+from src.measurement.uncertainty import Interval, UncertainState, propagate, format_uncertainty
+
+state = UncertainState(
+    resonance_energy=Interval(0.60, 0.90),
+    adaptability=Interval(0.50, 0.90),
+    diversity=Interval(0.50, 0.90),
+    coupling=Interval(0.75, 0.95),
+    loss_rate=Interval(0.15, 0.35),
+)
+print(format_uncertainty(propagate(state)))
+```
+
+Those inputs give a point estimate of `M(S) = +0.06` — GREEN. The
+propagated interval is `[-0.24, +0.54]`, and the verdict comes back
+**UNDETERMINED**: the same evidence is consistent with RED. The bounds
+are exact rather than sampled, since M(S) is monotone in every input.
+
+`monte_carlo` adds what intervals cannot — `P(M(S) < 0)` and the
+probability mass per signal — at the cost of assuming a distribution
+shape and independence between inputs. Both assumptions are stated in
+its output, because independence is the one most likely to be wrong:
+the stress that drains `R_e` usually erodes `A` and `D` too.
+
 ### Watching for a tipping point
 
 A system approaching a transition recovers from perturbations more and
