@@ -307,6 +307,12 @@ def coupling_coherence(
             "f(C) = 0 because the network has no path between all units, "
             "not because the coupling strength is mistuned"
         )
+        notes.append(
+            "a partition is not necessarily an ending: see `dormancy`, where "
+            "surviving components can fold to a seed and re-expand if the "
+            "network is restored. Whether that is worth doing is not a "
+            "measurement."
+        )
         return CouplingReading(
             coherence=0.0, synchronizable=False, msf_class=window.msf_class,
             regime="FRAGMENTED_STRUCTURALLY", source=source, notes=notes,

@@ -35,6 +35,10 @@ zero takes the whole product to zero. That is deliberate: a system with no
 remaining viable strategies is not partially healthy, and the verdict
 layer reports it as `BLACK` — irreversible from within.
 
+With one caveat the formula cannot see on its own: M(S) measures flux,
+and a *dormant* system reads zero too. See
+[Dormancy](#dormancy-ms-cannot-tell-waiting-from-dying).
+
 ## Use Cases
 
 **Truth-telling (what this is for)**
@@ -107,6 +111,46 @@ D = D_response_diversity([                  # response diversity, not headcount
     component_b_under_stress,
 ])
 ```
+
+### Dormancy: M(S) cannot tell waiting from dying
+
+M(S) measures *flux*. A dormant system and a dead one both read
+`R_e = A = D = 0`, and the verdict layer calls both BLACK. For a
+collapsed system that is right. For a seed, a spore, or a tardigrade in
+tun state it is a false positive — anhydrobiotic tardigrades suspend
+metabolism and resume; Judean date palm seeds have germinated after
+~2000 years. **No flux measurement can separate those cases, because
+during dormancy there is no flux to measure.**
+
+`dormancy` supplies the structural channel instead:
+
+```python
+from src.measurement.dormancy import fold, fold_window, assess_dormancy, format_dormancy
+
+print(fold_window(resonance_energy=0.10).open)   # False — too late to fold
+
+seed = fold(resonance_energy=0.40, adaptability=0.30,
+            diversity=0.55, coupling=0.70, residual_activity=0.04)
+print(format_dormancy(assess_dormancy(seed, periods_elapsed=500)))
+```
+
+A seed keeps *proportions*, not magnitude — it is the structure at
+minimum energy, so it can re-expand at whatever scale the world later
+allows. Three things stop this from being wishful:
+
+- **Folding costs energy**, so the option closes while the system is
+  still alive. `fold_window` reports that closing; below the cost, the
+  choice to wait is simply gone.
+- **Preservation decays on a clock.** Longevity follows the Ellis &
+  Roberts viability equation (1980, *Annals of Botany* 45:13); across
+  the stress range its time constant runs from ~56,000 periods down to
+  ~96.
+- **Over-compression destroys the seed.** Below roughly 2% residual
+  activity, further compression buys no longevity and damages what is
+  being preserved.
+
+`assess_dormancy(None)` returns `NEVER_FOLDED` and says so plainly: a
+missing seed is absent evidence, not proof of death.
 
 ### Where the coupling optimum comes from
 
@@ -208,6 +252,7 @@ systems give none by construction. The module says so in its own output.
 │       ├── calibration.py             # cited derivations of R_e/A/D/L
 │       ├── coherence_verdict.py       # GREEN/AMBER/RED/BLACK signal layer
 │       ├── coupling_physics.py        # f(C) optimum from synchronization stability
+│       ├── dormancy.py                # fold to a seed; dormancy vs death
 │       ├── early_warning.py           # critical slowing down, rate tipping
 │       ├── empathy_types.py           # empathy paradigm comparison
 │       ├── multi_model_peer_review.py # AI-to-AI cross-validation
@@ -231,6 +276,7 @@ python -m src.core.coherence_metric
 python -m src.measurement.early_warning
 python -m src.measurement.calibration
 python -m src.measurement.coupling_physics
+python -m src.measurement.dormancy
 python -m src.measurement.uncertainty
 python -m src.measurement.audit_bridge
 ```
