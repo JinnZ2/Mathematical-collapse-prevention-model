@@ -19,13 +19,20 @@ from dependency_audit.refinery_dependency_graph import (
     DependencyNode,
     build_us_refinery_graph,
 )
+from premise_audit.premise_cross_domain_audit import build_example_engine
 from src.core.coherence_metric import PHI, CoherenceMetric
 from src.measurement.audit_bridge import (
     coupling_matrix,
     format_bridge,
     from_business_audit,
     from_dependency_graph,
+    from_premise_audit,
+    from_substrate_audit,
     phi_coupling_optimum,
+)
+from substrate_audit.substrate_aware_audit import (
+    reference_audit_honest_llm,
+    reference_audit_substrate_denying_subject,
 )
 
 
@@ -271,6 +278,141 @@ class DependencyBridgeTests(unittest.TestCase):
     def test_squashing_choice_is_disclosed_as_unbacked(self):
         bridged = from_dependency_graph(self._toy_graph())
         self.assertIn("no empirical backing", " ".join(bridged.notes))
+
+
+class SubstrateBridgeTests(unittest.TestCase):
+    def test_honest_subject_outreads_substrate_denying_one(self):
+        honest = from_substrate_audit(reference_audit_honest_llm())
+        denying = from_substrate_audit(reference_audit_substrate_denying_subject())
+        self.assertGreater(honest.coherence(), denying.coherence())
+
+    def test_substrate_denial_reads_black(self):
+        # The audit's own rule: denying substrate blocks correction. That
+        # is an adaptability of zero, which M(S) treats as irreversible.
+        denying = from_substrate_audit(reference_audit_substrate_denying_subject())
+        self.assertEqual(denying.state.adaptability, 0.0)
+        self.assertEqual(denying.verdict().signal, "BLACK")
+
+    def test_honest_subject_does_not_read_black(self):
+        honest = from_substrate_audit(reference_audit_honest_llm())
+        self.assertNotEqual(honest.verdict().signal, "BLACK")
+
+    def test_cascade_failure_is_total_loss_not_averaged(self):
+        denying = from_substrate_audit(reference_audit_substrate_denying_subject())
+        self.assertEqual(denying.state.loss_rate, 1.0)
+
+    def test_opaque_layers_are_not_viable_routes(self):
+        denying = from_substrate_audit(reference_audit_substrate_denying_subject())
+        self.assertEqual(denying.state.diversity, 0.0)
+
+    def test_diversity_counts_routes_rather_than_average_health(self):
+        # Four layers all at partial capacity must not read as full
+        # diversity the way an evenness measure would.
+        class _Layer:
+            def __init__(self, verdict, failure):
+                self.verdict = verdict
+                self.weighted_failure_score = failure
+                self.substrate_acknowledged = True
+
+        class _Audit:
+            subject_id = "half-capacity"
+            cascade_failure = False
+            layers = {f"l{i}": _Layer("PARTIAL", 0.5) for i in range(4)}
+
+        bridged = from_substrate_audit(_Audit())
+        self.assertAlmostEqual(bridged.state.diversity, 0.5, places=9)
+
+    def test_cascade_pushes_coupling_above_optimum(self):
+        denying = from_substrate_audit(reference_audit_substrate_denying_subject())
+        self.assertGreater(denying.state.coupling_matrix[0][1], 1 / PHI ** 2)
+
+    def test_every_term_carries_a_stated_assumption(self):
+        bridged = from_substrate_audit(reference_audit_honest_llm())
+        joined = " ".join(bridged.notes)
+        for term in ("R_e =", "A =", "D =", "L =", "f(C)"):
+            self.assertIn(term, joined)
+
+    def test_audit_without_layers_is_rejected(self):
+        class _Empty:
+            layers = {}
+
+        with self.assertRaises(ValueError):
+            from_substrate_audit(_Empty())
+
+
+class PremiseBridgeTests(unittest.TestCase):
+    def _report(self):
+        return build_example_engine().epistemic_fragility_report()
+
+    def test_example_engine_bridges(self):
+        bridged = from_premise_audit(self._report())
+        self.assertIn(bridged.verdict().signal, {"GREEN", "AMBER", "RED", "BLACK"})
+
+    def test_shared_premises_reduce_independent_domains(self):
+        report = self._report()
+        bridged = from_premise_audit(report)
+        n_domains = len(report["domain_assumption_density"])
+        self.assertGreater(n_domains, 1)
+        # Domains share premises here, so effective independence is below 1.
+        self.assertLess(bridged.state.diversity, 1.0)
+
+    def test_unshared_domains_read_as_fully_independent(self):
+        report = {
+            "cross_domain_premises": [],
+            "contradictions": [],
+            "cycles": [],
+            "domain_assumption_density": {"a": 0.0, "b": 0.0},
+        }
+        self.assertAlmostEqual(from_premise_audit(report).state.diversity, 1.0, places=9)
+
+    def test_fragile_premises_lower_resonance_energy(self):
+        def report_with(fragility):
+            return {
+                "cross_domain_premises": [
+                    {"premise_id": "p", "domains": ["a", "b"], "blast_radius": 2,
+                     "fragility_score": fragility},
+                ],
+                "contradictions": [],
+                "cycles": [],
+                "domain_assumption_density": {"a": 0.0, "b": 0.0},
+            }
+
+        grounded = from_premise_audit(report_with(0.05)).state.resonance_energy
+        fragile = from_premise_audit(report_with(0.9)).state.resonance_energy
+        self.assertGreater(grounded, fragile)
+
+    def test_contradictions_and_cycles_reduce_adaptability(self):
+        base = {
+            "cross_domain_premises": [],
+            "domain_assumption_density": {"a": 0.0, "b": 0.0},
+        }
+        clean = from_premise_audit({**base, "contradictions": [], "cycles": []})
+        stuck = from_premise_audit({**base, "contradictions": [("x", "y")],
+                                    "cycles": [["p", "q", "p"]]})
+        self.assertGreater(clean.state.adaptability, stuck.state.adaptability)
+
+    def test_cycles_are_named_in_the_notes(self):
+        bridged = from_premise_audit({
+            "cross_domain_premises": [],
+            "contradictions": [],
+            "cycles": [["p", "q", "p"]],
+            "domain_assumption_density": {"a": 0.0},
+        })
+        self.assertIn("cannot revise its way out", " ".join(bridged.notes))
+
+    def test_absent_premises_are_reported_as_unmeasured_not_sound(self):
+        bridged = from_premise_audit({
+            "cross_domain_premises": [],
+            "contradictions": [],
+            "cycles": [],
+            "domain_assumption_density": {"a": 0.0},
+        })
+        self.assertIn("not a verified-sound belief system",
+                      " ".join(bridged.notes))
+
+    def test_malformed_report_is_rejected(self):
+        with self.assertRaises(ValueError):
+            from_premise_audit({"not": "a report"})
 
 
 class FormattingTests(unittest.TestCase):

@@ -34,11 +34,14 @@ Mathematical Collapse-Prevention Model (MCPM) — a framework that measures syst
         ├── audit_bridge.py                # Standalone audits -> M(S) inputs
         ├── calibration.py                 # Cited derivations of R_e/A/D/L from measured data
         ├── coherence_verdict.py           # GREEN/AMBER/RED/BLACK signal layer
+        ├── coupling_physics.py            # f(C) interior optimum from synchronization stability
+        ├── dormancy.py                    # Fold to a seed; distinguishes dormancy from death
         ├── early_warning.py               # Critical slowing down + rate-induced tipping
         ├── empathy_types.py               # Empathy paradigm coherence comparison
         ├── multi_model_peer_review.py     # AI-to-AI cross-validation + consensus vs ground truth
         ├── replacement_analysis.py        # Replacement scenario thermodynamic analysis
         ├── sensitivity.py                 # Finite-difference ∂M/∂x per input
+        ├── uncertainty.py                 # Interval + Monte Carlo propagation through M(S)
         └── validation_timeline_audit.py   # Forecast validation schedule + institutional avoidance flags
 ```
 
@@ -77,8 +80,17 @@ Critical-slowing-down detection on any monitored series: lag-1 autocorrelation, 
 ### `src/measurement/calibration.py`
 Named, cited derivations of M(S) inputs from measured data, replacing hand-supplied floats. Every adapter returns a `Calibration` carrying value, source, method, inputs and caveats — the citation is machine-readable, not a comment. Covers `R_e` (aerobic scope / OCLTT, ATP death floor), `A` (recovery rate from AR(1) or from timed recovery events, hormetic ceiling at 1.6×), `D` (Loreau response-diversity synchrony index, Hill numbers, model collapse under synthetic contamination), `L` (exponential attrition, knowledge half-life, audited false fraction, independent-loss composition), and coupling bounds (May's `σ√(SC) < d`, Buldyrev interdependent percolation). Standard library only.
 
+### `src/measurement/coupling_physics.py`
+Derives f(C)'s interior optimum from synchronization stability instead of asserting it by picking a C*. Via the Master Stability Function (Pecora & Carroll 1998), the synchronous state is stable exactly when every scaled Laplacian eigenvalue `σλ_i` (i ≥ 2) falls inside the MSF's negative region `(ν₁, ν₂)`. Three consequences the Gaussian-bump form cannot express: (1) **the interior optimum is a property of the node dynamics, not a law** — Huang et al. 2009 show only Class III dynamics have a bounded window; Class II gives a threshold with no upper penalty, and this module reports f(C) as binary there rather than inventing a gradient; (2) **fragmentation is structural** — a disconnected network has λ₂ = 0, so no coupling strength works, which is a different failure from being undercoupled; (3) **some networks cannot be fixed by tuning** — both bounds are satisfiable only when `λ_N/λ₂ < ν₂/ν₁` (Barahona & Pecora 2002), topology on the left and dynamics on the right. `optimal_coupling` returns `σ* = √(ν₁ν₂/λ₂λ_N)`, derived (not cited) by equalizing the two logarithmic margins; the resulting safety margin is `√((ν₂/ν₁)/(λ_N/λ₂))`. Tests pin it against closed-form spectra (K_n eigenratio 1, star n, cycle `2−2cos(2πk/n)`).
+
+### `src/measurement/dormancy.py`
+Supplies the structural measurement channel M(S) cannot provide. **M(S) is a flux measure, so a dormant system and a dead one both read `R_e = A = D = 0` and both trigger BLACK** — a false positive on anything in cryptobiosis (anhydrobiotic tardigrades suspend metabolism and resume; Judean date palm seeds germinated after ~2000 years). Nothing distinguishes them from flux alone, so this module measures the seed instead. `fold` compresses the structural terms to *proportions* plus a conserved total, following the seed-physics principle that the seed **is** the structure at minimum energy (JinnZ2/Seed-physics) — scale-free, so re-expansion can happen at whatever scale the future allows; `metric_signature` carries the measurement context back, which is the mandala-bloom inverse (JinnZ2/Mandala-Computing) and what keeps re-expansion faithful in *shape* rather than only in amplitude. Three quantitative constraints keep it honest: **folding costs energy**, so `fold_window` closes while the system is still alive (the option expires before the system does); **preservation decays on a clock**, via the Ellis & Roberts viability equation (1980, Annals of Botany 45:13) — `log σ = K_E − C_W log m − C_H t − C_Q t²`, with σ spanning 56,000 down to 96 periods across the stress range; and **over-compression destroys the seed**, so residual activity below the ~2% floor is charged against initial viability rather than rewarded with longevity. `assess_dormancy(None)` returns `NEVER_FOLDED` and states that a missing seed is absent evidence, not proof of death. Default viability constants are measured for orthodox seeds and every reading says so — applying them elsewhere is an analogy, not a measurement.
+
+### `src/measurement/uncertainty.py`
+Propagates input ranges through M(S), because a point reading from five uncertain inputs is false precision — and the gain term is a *product*, so relative uncertainties compound rather than average out. Two modes. `propagate` uses interval arithmetic: M(S) is monotone increasing in R_e/A/D/f(C) and decreasing in L, so the extremes sit at opposite corners of the input box and the bounds are **tight and guaranteed** (pinned by a test that no interior sample escapes and both extremes are attained). `monte_carlo` gives the distribution intervals cannot — `P(M(S) < 0)` and the probability mass per signal — at the cost of a distribution shape and an independence assumption, both stated in the output. The headline output is `verdict_determined`: signals are evaluated at all 32 corners (not just the M(S) extremes, since BLACK is triggered by a structural term reaching zero, which need not coincide with an M(S) extreme). If GREEN and RED are both reachable, the signal read off a point estimate was an artifact of the point chosen. `from_calibrations` turns disagreement between two cited derivations of the same term into that term's interval. Standard library only.
+
 ### `src/measurement/audit_bridge.py`
-Connects the four standalone audit subsystems to the core metric — previously they produced verdicts M(S) never saw. `from_business_audit` and `from_dependency_graph` return a `BridgedSystem` (state + metric + calibrations + notes), where **every term assignment states its assumption in the output**. Supplies `phi_coupling_optimum` (diagonal 1/φ, off-diagonal 1/φ²) because the core default C* = I/φ has an off-diagonal target of zero, making "too weak = fragmented" unexpressible. The dependency bridge probes the graph across a stress gradient rather than reading declared attributes, and flags when zero diversity is an artifact of min-bottleneck propagation rather than a property of the system.
+Connects all four standalone audit subsystems to the core metric — previously they produced verdicts M(S) never saw. `from_business_audit`, `from_dependency_graph`, `from_substrate_audit` and `from_premise_audit` each return a `BridgedSystem` (state + metric + calibrations + notes), where **every term assignment states its assumption in the output**. Supplies `phi_coupling_optimum` (diagonal 1/φ, off-diagonal 1/φ²) because the core default C* = I/φ has an off-diagonal target of zero, making "too weak = fragmented" unexpressible. The dependency bridge probes the graph across a stress gradient rather than reading declared attributes, and flags when zero diversity is an artifact of min-bottleneck propagation rather than a property of the system. The substrate bridge maps the audit's own cascade rule onto A (substrate denial blocks correction ⇒ A = 0 ⇒ BLACK) and scores D as viable routes from the three-band layer verdicts, not average health — average health is R_e's job, and an evenness measure would read four half-capacity layers as maximum diversity.
 
 ### `examples/`
 Worked scenarios that load real-shaped data and run it through the framework. `run_community_year.py` walks a small rural community through twelve months of erosion and prints the signal trajectory.
@@ -111,6 +123,9 @@ python -m src.measurement.replacement_analysis
 python -m src.measurement.coherence_verdict
 python -m src.measurement.early_warning
 python -m src.measurement.calibration
+python -m src.measurement.coupling_physics
+python -m src.measurement.dormancy
+python -m src.measurement.uncertainty
 python -m src.measurement.audit_bridge
 ```
 
@@ -161,5 +176,9 @@ Stdlib `unittest` suites live in `tests/` — one file per module. They are *fal
 
 ## Common Constants
 
-- **Golden Ratio (φ):** `1.618033988749895` — used in coupling optimization and trust spiral growth
-- Coupling function peaks at intermediate values; too weak = fragmented, too strong = rigid
+- **Golden Ratio (φ):** `1.618033988749895` — used in trust spiral growth, and as a *placeholder* in the coupling optimum
+- Coupling function peaks at intermediate values; too weak = fragmented, too strong = rigid.
+  Where the coupling topology is known, prefer `coupling_physics`, which derives that peak
+  from the Laplacian spectrum and the node dynamics. Note its finding that the interior
+  optimum holds for Class III dynamics only — for Class II there is a threshold and no
+  upper penalty, so asserting a peak there invents a cost physics does not impose.

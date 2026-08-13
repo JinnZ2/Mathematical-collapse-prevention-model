@@ -35,6 +35,10 @@ zero takes the whole product to zero. That is deliberate: a system with no
 remaining viable strategies is not partially healthy, and the verdict
 layer reports it as `BLACK` — irreversible from within.
 
+With one caveat the formula cannot see on its own: M(S) measures flux,
+and a *dormant* system reads zero too. See
+[Dormancy](#dormancy-ms-cannot-tell-waiting-from-dying).
+
 ## Use Cases
 
 **Truth-telling (what this is for)**
@@ -108,6 +112,114 @@ D = D_response_diversity([                  # response diversity, not headcount
 ])
 ```
 
+### Dormancy: M(S) cannot tell waiting from dying
+
+M(S) measures *flux*. A dormant system and a dead one both read
+`R_e = A = D = 0`, and the verdict layer calls both BLACK. For a
+collapsed system that is right. For a seed, a spore, or a tardigrade in
+tun state it is a false positive — anhydrobiotic tardigrades suspend
+metabolism and resume; Judean date palm seeds have germinated after
+~2000 years. **No flux measurement can separate those cases, because
+during dormancy there is no flux to measure.**
+
+`dormancy` supplies the structural channel instead:
+
+```python
+from src.measurement.dormancy import fold, fold_window, assess_dormancy, format_dormancy
+
+print(fold_window(resonance_energy=0.10).open)   # False — too late to fold
+
+seed = fold(resonance_energy=0.40, adaptability=0.30,
+            diversity=0.55, coupling=0.70, residual_activity=0.04)
+print(format_dormancy(assess_dormancy(seed, periods_elapsed=500)))
+```
+
+A seed keeps *proportions*, not magnitude — it is the structure at
+minimum energy, so it can re-expand at whatever scale the world later
+allows. Three things stop this from being wishful:
+
+- **Folding costs energy**, so the option closes while the system is
+  still alive. `fold_window` reports that closing; below the cost, the
+  choice to wait is simply gone.
+- **Preservation decays on a clock.** Longevity follows the Ellis &
+  Roberts viability equation (1980, *Annals of Botany* 45:13); across
+  the stress range its time constant runs from ~56,000 periods down to
+  ~96.
+- **Over-compression destroys the seed.** Below roughly 2% residual
+  activity, further compression buys no longevity and damages what is
+  being preserved.
+
+`assess_dormancy(None)` returns `NEVER_FOLDED` and says so plainly: a
+missing seed is absent evidence, not proof of death.
+
+### Where the coupling optimum comes from
+
+`f(C)` is supposed to peak at intermediate coupling — "too weak =
+fragmented, too strong = rigid." Implemented as a bump around a chosen
+`C*`, that is an assertion: move `C*` and the optimum moves with it.
+Synchronization theory derives the same shape with no free parameter.
+
+For units coupled through a network, the synchronous state is stable
+exactly when every scaled Laplacian eigenvalue lands inside the Master
+Stability Function's negative region, `ν₁ < σλᵢ < ν₂`
+([Pecora & Carroll 1998](https://doi.org/10.1103/PhysRevLett.80.2109)):
+
+```python
+import numpy as np
+from src.measurement.coupling_physics import MSFWindow, coupling_coherence, format_coupling
+
+window = MSFWindow(nu_lower=0.2, nu_upper=4.0)   # measured from your node dynamics
+ring = np.array([[0,1,0,0,1],[1,0,1,0,0],[0,1,0,1,0],[0,0,1,0,1],[1,0,0,1,0]], float)
+
+print(format_coupling(coupling_coherence(0.4, ring, window)))
+```
+
+Three things fall out that the bump form cannot express:
+
+- **The interior optimum is a property of the dynamics, not a law.**
+  [Huang et al. 2009](https://doi.org/10.1103/PhysRevE.80.036204) prove
+  only three MSF classes are possible. Only Class III has a bounded
+  window; Class II has a threshold and no upper penalty at all. This
+  module reports the class instead of assuming a peak exists.
+- **Fragmentation is structural, not mistuning.** A disconnected network
+  has `λ₂ = 0`, so *no* coupling strength synchronizes it. That is a
+  different failure from being undercoupled, and it is reported as one.
+- **Some networks cannot be fixed by tuning.** Both bounds are
+  satisfiable only when `λ_N/λ₂ < ν₂/ν₁`
+  ([Barahona & Pecora 2002](https://doi.org/10.1103/PhysRevLett.89.054101))
+  — topology on the left, dynamics on the right. Above that, the remedy
+  is a different network, not a different coupling strength.
+
+### How much does the reading actually determine?
+
+M(S) returns one number with no error bar, and that number reads as
+precise. Because the gain term is a product, five uncertain inputs
+compound into a result far less determined than it looks:
+
+```python
+from src.measurement.uncertainty import Interval, UncertainState, propagate, format_uncertainty
+
+state = UncertainState(
+    resonance_energy=Interval(0.60, 0.90),
+    adaptability=Interval(0.50, 0.90),
+    diversity=Interval(0.50, 0.90),
+    coupling=Interval(0.75, 0.95),
+    loss_rate=Interval(0.15, 0.35),
+)
+print(format_uncertainty(propagate(state)))
+```
+
+Those inputs give a point estimate of `M(S) = +0.06` — GREEN. The
+propagated interval is `[-0.24, +0.54]`, and the verdict comes back
+**UNDETERMINED**: the same evidence is consistent with RED. The bounds
+are exact rather than sampled, since M(S) is monotone in every input.
+
+`monte_carlo` adds what intervals cannot — `P(M(S) < 0)` and the
+probability mass per signal — at the cost of assuming a distribution
+shape and independence between inputs. Both assumptions are stated in
+its output, because independence is the one most likely to be wrong:
+the stress that drains `R_e` usually erodes `A` and `D` too.
+
 ### Watching for a tipping point
 
 A system approaching a transition recovers from perturbations more and
@@ -139,11 +251,14 @@ systems give none by construction. The module says so in its own output.
 │       ├── ai_forecast_audit.py       # forecast accuracy + compute burden
 │       ├── calibration.py             # cited derivations of R_e/A/D/L
 │       ├── coherence_verdict.py       # GREEN/AMBER/RED/BLACK signal layer
+│       ├── coupling_physics.py        # f(C) optimum from synchronization stability
+│       ├── dormancy.py                # fold to a seed; dormancy vs death
 │       ├── early_warning.py           # critical slowing down, rate tipping
 │       ├── empathy_types.py           # empathy paradigm comparison
 │       ├── multi_model_peer_review.py # AI-to-AI cross-validation
 │       ├── replacement_analysis.py    # replacement thermodynamics
 │       ├── sensitivity.py             # ∂M/∂x per input
+│       ├── uncertainty.py             # interval + Monte Carlo propagation
 │       └── validation_timeline_audit.py
 ├── business_audit/                    # business resilience self-audit
 ├── dependency_audit/                  # refinery dependency graph
@@ -160,6 +275,9 @@ Every module has a runnable demo:
 python -m src.core.coherence_metric
 python -m src.measurement.early_warning
 python -m src.measurement.calibration
+python -m src.measurement.coupling_physics
+python -m src.measurement.dormancy
+python -m src.measurement.uncertainty
 python -m src.measurement.audit_bridge
 ```
 

@@ -28,6 +28,16 @@ so that both an unconnected system and a rigidly over-connected one score
 below a moderately connected one. That is the framework's stated design
 (too weak = fragmented, too strong = rigid) made arithmetic.
 
+**That optimum is a placeholder, and the golden ratio in it is an
+aesthetic choice, not a measurement.** Where the actual coupling
+topology is known, `coupling_physics` derives the same shape from
+synchronization stability instead: the window is bounded below because
+the slowest network mode fails to lock and above because the fastest one
+goes unstable, with no free parameter to tune. These bridges cannot use
+it, because an audit hands them a scalar vulnerability index rather than
+a network — a scalar has no Laplacian spectrum. Prefer the derived
+version whenever you have the graph.
+
 MEASUREMENT, NOT CONTROL
 ------------------------
 A bridge translates an audit into a reading. It does not rank the audited
@@ -42,8 +52,8 @@ from typing import Any, Callable, Dict, List, Optional, Sequence
 import numpy as np
 
 from ..core.coherence_metric import PHI, CoherenceMetric, SystemState
-from .calibration import Calibration, A_from_recovery_events, D_response_diversity, \
-    interdependence_penalty
+from .calibration import Calibration, A_from_recovery_events, \
+    D_response_diversity, interdependence_penalty
 from .coherence_verdict import CoherenceVerdict, assess
 
 # Disruption levels used to probe a dependency graph for response
@@ -83,6 +93,13 @@ def phi_coupling_optimum(n: int) -> np.ndarray:
     fully decoupled system and a rigidly coupled one are both penalized,
     which is what "optimal at intermediate coupling" has to mean if it
     means anything.
+
+    The *shape* is right and the golden ratio is not: nothing in the
+    stability literature puts the optimum at 1/phi^2. This is a stand-in
+    for use when only a scalar coupling summary is available. With a real
+    network in hand, `coupling_physics.coupling_coherence` derives the
+    location of the optimum from the Laplacian spectrum and the node
+    dynamics rather than choosing it.
     """
     if n < 1:
         raise ValueError("coupling optimum needs at least one component")
@@ -119,6 +136,14 @@ def _clamp01(x: float) -> float:
 CONCENTRATION_SPOFS = frozenset({
     "supplier", "revenue_concentration", "knowledge_loss",
 })
+
+# How much of an independent check a substrate-audit layer still provides,
+# by its own three-band verdict. An OPAQUE layer is not a route.
+LAYER_VIABILITY = {
+    "DEMONSTRABLE": 1.0,
+    "PARTIAL": 0.5,
+    "OPAQUE": 0.0,
+}
 
 
 def from_business_audit(
@@ -418,6 +443,288 @@ def from_dependency_graph(
                          calibrations=calibrations, notes=notes)
 
 
+# --- Substrate-aware audit ------------------------------------------------
+
+
+def from_substrate_audit(
+    audit: Any,
+    energy_cost: Optional[float] = None,
+    description: Optional[str] = None,
+) -> BridgedSystem:
+    """Bridge an `IntegratedAudit` from the substrate-aware audit into M(S).
+
+    Mapping, with the assumption behind each term:
+
+      R_e <- 1 - mean weighted failure across layers
+          What each layer still demonstrates rather than obscures. A layer
+          that fails its tests is not producing constructive flow, it is
+          producing assertions.
+
+      A   <- fraction of layers acknowledging substrate
+          The audit's own load-bearing claim is that a subject denying its
+          substrate cannot be corrected, however articulate it sounds.
+          That is a statement about recovery capacity, so it maps to A.
+
+      D   <- effective number of still-functioning layers
+          Layers that remain DEMONSTRABLE are the independent routes by
+          which the subject can still be checked. Weighted by their
+          surviving capacity, not counted.
+
+      L   <- mean failure, or total under cascade failure
+          Cascade failure means downstream verdicts cannot be trusted at
+          all, so the loss is not partial. This is the audit's own rule,
+          restated in M(S) terms rather than softened by averaging.
+
+      f(C) <- over-coupling when a cascade is detected
+          A cascade is by definition failure in one place invalidating
+          everything else — the signature of rigid coupling.
+
+    Args:
+        audit: An `IntegratedAudit` (or anything exposing `layers`,
+               `cascade_failure` and `overall_verdict`).
+        energy_cost: Optional energy denominator for the value ratio.
+        description: Optional label; defaults to the audit's subject.
+
+    Returns:
+        BridgedSystem carrying the state, metric, and stated assumptions.
+    """
+    layers = getattr(audit, "layers", None)
+    if not layers:
+        raise ValueError("expected an IntegratedAudit with at least one layer")
+
+    notes: List[str] = []
+    calibrations: List[Calibration] = []
+
+    failures = [float(getattr(l, "weighted_failure_score", 1.0)) for l in layers.values()]
+    mean_failure = sum(failures) / len(failures)
+    r_e = _clamp01(1.0 - mean_failure)
+    notes.append(
+        f"R_e = 1 - mean layer failure ({r_e:.3f}) across {len(failures)} layers "
+        "— assumes a failing layer produces assertion rather than constructive flow"
+    )
+
+    acknowledged = sum(1 for l in layers.values()
+                       if getattr(l, "substrate_acknowledged", False))
+    a = _clamp01(acknowledged / len(layers))
+    notes.append(
+        f"A = {acknowledged}/{len(layers)} layers acknowledging substrate "
+        f"({a:.3f}) — the audit's own cascade rule says substrate denial "
+        "blocks correction, which is a recovery-capacity claim"
+    )
+    if a == 0.0:
+        notes.append(
+            "A is zero: no layer acknowledged its substrate. M(S) reads this "
+            "as irreversible (BLACK), matching the audit's OPAQUE_CASCADE "
+            "verdict rather than adding a separate judgment."
+        )
+
+    # Viable routes, not average health: a layer is a usable check or it
+    # is not. An evenness measure would read four layers all at half
+    # capacity as maximum diversity, and averaging their capacity would
+    # just restate R_e.
+    viable = sum(LAYER_VIABILITY.get(getattr(l, "verdict", ""), 0.0)
+                 for l in layers.values())
+    d = _clamp01(viable / len(layers))
+    verdicts = [getattr(l, "verdict", "?") for l in layers.values()]
+    notes.append(
+        f"D = {d:.3f} — share of layers still usable as independent checks, "
+        f"scoring the audit's own verdicts ({', '.join(verdicts)}) at "
+        "DEMONSTRABLE=1, PARTIAL=0.5, OPAQUE=0. Counts routes, not average "
+        "health; average health is what R_e already reports."
+    )
+
+    cascade = bool(getattr(audit, "cascade_failure", False))
+    if cascade:
+        l = 1.0
+        notes.append(
+            "L = 1.000 — cascade failure detected, so downstream verdicts "
+            "cannot be trusted at all. The audit's rule is total, not "
+            "partial, and averaging it away would be a softer claim than "
+            "the audit itself makes."
+        )
+    else:
+        l = _clamp01(mean_failure)
+        notes.append(
+            f"L = mean layer failure ({l:.3f}) — opacity as the loss channel; "
+            "channels this audit does not test are absent from the reading, "
+            "not absent from the subject"
+        )
+
+    cross = (1.0 / PHI ** 2) * (2.0 if cascade else 1.0)
+    notes.append(
+        f"f(C): cross-coupling {cross:.3f} against optimum {1 / PHI ** 2:.3f} — "
+        f"cascade {'detected' if cascade else 'not detected'}; a cascade is "
+        "failure in one layer invalidating the rest, which is rigidity"
+    )
+
+    state = SystemState(
+        resonance_energy=r_e,
+        adaptability=a,
+        diversity=d,
+        coupling_matrix=coupling_matrix(2, cross),
+        loss_rate=l,
+        energy_cost=energy_cost,
+        description=description or getattr(audit, "subject_id", None),
+    )
+    metric = CoherenceMetric(coupling_optimum=phi_coupling_optimum(2))
+    return BridgedSystem(state=state, metric=metric,
+                         calibrations=calibrations, notes=notes)
+
+
+# --- Cross-domain premise audit ------------------------------------------
+
+
+def from_premise_audit(
+    report: Dict[str, Any],
+    energy_cost: Optional[float] = None,
+    description: Optional[str] = None,
+) -> BridgedSystem:
+    """Bridge `PremiseAuditEngine.epistemic_fragility_report()` into M(S).
+
+    This bridges a *belief system* rather than a physical one: the thing
+    being measured is how much of what a set of domains claims to know
+    still holds if its shared premises turn out to be wrong.
+
+    Mapping, with the assumption behind each term:
+
+      R_e <- 1 - mean premise fragility
+          Fragility is confidence x (1 - evidence): belief running ahead
+          of grounding. Premises that are actually grounded are the ones
+          carrying constructive weight.
+
+      A   <- 1 - contradiction and cycle load
+          Unresolved contradictions and circular premise dependencies are
+          what stops a belief system from correcting itself. A system with
+          a cycle cannot revise its way out from inside the cycle.
+
+      D   <- effective number of independent domains
+          Domains resting on the same cross-domain premise are not
+          independent checks on each other, however many there are. The
+          blast radius of shared premises is charged against D directly.
+
+      L   <- risk concentrated in the highest-blast-radius premise
+          The loss if the single most load-bearing premise fails,
+          normalized by total claim coverage.
+
+      f(C) <- cross-domain premise sharing as coupling
+          Shared premises are exactly what couples otherwise separate
+          domains, and what makes one failure propagate across all of them.
+
+    Args:
+        report: Output of `epistemic_fragility_report()`.
+        energy_cost: Optional energy denominator for the value ratio.
+        description: Optional label for the state.
+
+    Returns:
+        BridgedSystem carrying the state, metric, and stated assumptions.
+    """
+    if not isinstance(report, dict) or "cross_domain_premises" not in report:
+        raise ValueError(
+            "expected the output of PremiseAuditEngine.epistemic_fragility_report"
+        )
+
+    notes: List[str] = []
+    calibrations: List[Calibration] = []
+
+    shared = report.get("cross_domain_premises", [])
+    contradictions = report.get("contradictions", [])
+    cycles = report.get("cycles", [])
+    density = report.get("domain_assumption_density", {}) or {}
+
+    if shared:
+        mean_fragility = sum(float(p.get("fragility_score", 0.0))
+                             for p in shared) / len(shared)
+    else:
+        mean_fragility = 0.0
+    r_e = _clamp01(1.0 - mean_fragility)
+    notes.append(
+        f"R_e = 1 - mean premise fragility ({r_e:.3f}) over "
+        f"{len(shared)} cross-domain premises — fragility is "
+        "confidence x (1 - evidence), so this credits grounded belief only"
+    )
+    if not shared:
+        notes.append(
+            "no cross-domain premises found: R_e = 1 reflects nothing "
+            "measured, not a verified-sound belief system"
+        )
+
+    n_domains = max(1, len(density))
+    # Contradictions and cycles are both failures of self-correction.
+    correction_load = (len(contradictions) + len(cycles)) / n_domains
+    a = _clamp01(1.0 - correction_load)
+    notes.append(
+        f"A = {a:.3f} from {len(contradictions)} contradictions and "
+        f"{len(cycles)} cycles over {n_domains} domains — assumes an "
+        "unresolved contradiction or a circular premise is what blocks a "
+        "belief system from revising itself"
+    )
+    if cycles:
+        notes.append(
+            f"{len(cycles)} circular premise dependencies: a system inside a "
+            "cycle cannot revise its way out from within it"
+        )
+
+    if density:
+        # A domain resting on k shared premises counts as 1/(1+k) of an
+        # independent check. Summed and normalized this is the *level* of
+        # independence, which is the quantity that moves as coupling
+        # rises; an evenness measure would read five uniformly-coupled
+        # domains as maximum diversity.
+        independence = []
+        for domain in density:
+            shared_here = sum(1 for p in shared if domain in p.get("domains", []))
+            independence.append(1.0 / (1.0 + shared_here))
+        d = _clamp01(sum(independence) / len(independence))
+        notes.append(
+            f"D = {d:.3f} effective independent domains over {n_domains} "
+            "nominal — a domain resting on k shared premises counts as "
+            "1/(1+k) of an independent check, so domains sharing a premise "
+            "are not separate checks however many of them there are"
+        )
+    else:
+        d = 0.0
+        notes.append("D = 0: no domains recorded, so there are no independent checks")
+
+    total_blast = sum(int(p.get("blast_radius", 0)) for p in shared)
+    if shared and total_blast > 0:
+        worst = max(int(p.get("blast_radius", 0)) for p in shared)
+        l = _clamp01(worst / total_blast)
+        notes.append(
+            f"L = {l:.3f} — share of total claim coverage resting on the "
+            "single most load-bearing premise; the loss if that one premise "
+            "turns out to be wrong"
+        )
+    else:
+        l = 0.0
+        notes.append("L = 0: no shared premise coverage measured")
+
+    if density:
+        coupled_fraction = _clamp01(
+            sum(1 for p in shared if len(p.get("domains", [])) > 1) / n_domains
+        )
+    else:
+        coupled_fraction = 0.0
+    cross = (1.0 / PHI ** 2) * (1.0 + coupled_fraction)
+    notes.append(
+        f"f(C): cross-coupling {cross:.3f} against optimum {1 / PHI ** 2:.3f} — "
+        f"shared-premise load {coupled_fraction:.3f} read as coupling, since a "
+        "premise spanning domains is what makes one failure cross all of them"
+    )
+
+    state = SystemState(
+        resonance_energy=r_e,
+        adaptability=a,
+        diversity=d,
+        coupling_matrix=coupling_matrix(2, cross),
+        loss_rate=l,
+        energy_cost=energy_cost,
+        description=description or "premise audit",
+    )
+    metric = CoherenceMetric(coupling_optimum=phi_coupling_optimum(2))
+    return BridgedSystem(state=state, metric=metric,
+                         calibrations=calibrations, notes=notes)
+
+
 def format_bridge(b: BridgedSystem) -> str:
     """Human-readable rendering of a bridged audit, assumptions included."""
     s = b.state
@@ -464,3 +771,19 @@ if __name__ == "__main__":
 
     graph_bridge = from_dependency_graph(build_us_refinery_graph())
     print(format_bridge(graph_bridge))
+    print()
+
+    from substrate_audit.substrate_aware_audit import (
+        reference_audit_honest_llm,
+        reference_audit_substrate_denying_subject,
+    )
+
+    for reference in (reference_audit_honest_llm(),
+                      reference_audit_substrate_denying_subject()):
+        print(format_bridge(from_substrate_audit(reference)))
+        print()
+
+    from premise_audit.premise_cross_domain_audit import build_example_engine
+
+    engine = build_example_engine()
+    print(format_bridge(from_premise_audit(engine.epistemic_fragility_report())))
