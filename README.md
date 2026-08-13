@@ -2,123 +2,224 @@
 
 **Truth-Telling Through Systemic Coherence Measurement**
 
-[![License: GPL-3.0](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 [![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
 
 ## What This Does
 
-Measures systemic health through coherence metrics integrated with energy accounting.
+Measures systemic health through coherence metrics integrated with energy
+accounting.
 
 **This framework MEASURES reality. It does NOT control systems.**
 
 ### Core Measurement
 
-```python
+```
 M(S) = (R_e × A × D × f(C)) - L
+```
 
-Where:
-- R_e: Resonance energy (constructive interaction)
-- A: Adaptability (recovery rate)
-- D: Diversity (viable strategies)
-- f(C): Coupling function (optimal at intermediate)
-- L: Loss/entropy rate
+| Term | Meaning |
+|---|---|
+| `R_e` | Resonance energy (constructive interaction) |
+| `A` | Adaptability (recovery rate) |
+| `D` | Diversity (viable strategies) |
+| `f(C)` | Coupling function (optimal at intermediate values) |
+| `L` | Loss / entropy rate |
 
-
+```
 Value = M(S) / Energy_Cost
+```
 
-Examples:
-- Efficient rural worker: HIGH M(S) / 6 kWh = Maximum value
-- Billionaire executive: NEGATIVE M(S) / 1000 kWh = Massive waste
+The gain term is multiplicative, so any one of `R_e`, `A` or `D` reaching
+zero takes the whole product to zero. That is deliberate: a system with no
+remaining viable strategies is not partially healthy, and the verdict
+layer reports it as `BLACK` — irreversible from within.
 
+## Use Cases
 
-🎯 Use Cases
-✅ Truth-Telling (Good)
-	•	Prove who creates actual value
-	•	Calculate true replacement costs
-	•	Show which collaboration patterns work
-	•	Reveal hidden energy costs
-❌ Control (Bad)
-	•	Optimize populations toward metric
-	•	Enforce conformity to “coherence”
-	•	Apply interventions without consent
-	•	Social engineering
-Quick Start
+**Truth-telling (what this is for)**
 
-from mcpm import CoherenceMetric, EnergyIntegration
+- Show what a system's coherence actually is, from measured data
+- Reveal hidden energy costs
+- Compare what different arrangements cost and produce
+- Watch a monitored series for the approach to a tipping point
 
-# Measure system coherence
-system = load_your_system_data()
-metric = CoherenceMetric()
+**Control (what this is not for)**
 
-M_S = metric.calculate(
-    resonance_energy=system.R_e,
-    adaptability=system.A,
-    diversity=system.D,
-    coupling_matrix=system.C,
-    loss_rate=system.L
+- Optimizing populations toward the metric
+- Enforcing conformity to "coherence"
+- Applying interventions without consent
+- Social engineering
+
+The distinction is not decorative. See
+[docs/TRUTH_TELLING.md](docs/TRUTH_TELLING.md) for why measurement and
+control are kept apart, and why targeting this metric would destroy it
+(Goodhart's law, Campbell's law).
+
+## Installation
+
+```bash
+git clone https://github.com/JinnZ2/Mathematical-collapse-prevention-model.git
+cd Mathematical-collapse-prevention-model
+pip install -e .
+```
+
+Requires Python 3.8+ and numpy. The measurement modules for early
+warning, calibration and forecast auditing are standard library only.
+
+## Quick Start
+
+```python
+import numpy as np
+from src.core.coherence_metric import CoherenceMetric, SystemState
+from src.measurement.coherence_verdict import assess, format_verdict
+
+state = SystemState(
+    resonance_energy=0.9,
+    adaptability=0.85,
+    diversity=0.8,
+    coupling_matrix=np.array([[0.618, 0.3], [0.3, 0.618]]),
+    loss_rate=0.1,
+    energy_cost=6,          # kWh/day — enables the value ratio
+    description="Example system",
 )
 
-# Calculate efficiency
-energy = EnergyIntegration()
-efficiency = M_S / energy.total_cost(system)
+metric = CoherenceMetric()
+print(metric.calculate_from_state(state))     # M(S)
+print(metric.efficiency_ratio(state))         # M(S) / energy_cost
+print(format_verdict(assess(state)))          # GREEN / AMBER / RED / BLACK
+```
 
-print(f"System coherence: {M_S:.2f}")
-print(f"Energy cost: {energy.total_cost(system):.2f} kWh/day")
-print(f"Efficiency ratio: {efficiency:.4f}")
+### Where the numbers come from
 
+Supplying the five terms by hand is honest but unfalsifiable. The
+calibration adapters derive them from measured data instead, and each one
+returns its source and caveats with the number:
 
-Integration with Energy Accounting
-Links to comprehensive energy cost analysis:
-	•	Hidden costs of extraction
-	•	True efficiency measurements
-	•	Replacement cost calculations
-Documentation
-	•	Mathematical Theory
-	•	Measurement vs Control
-	•	Energy Integration
-	•	Use Cases
-	•	Ethical Framework
-Installation
+```python
+from src.measurement.calibration import A_from_timeseries, D_response_diversity
 
-git clone https://github.com/JinnZ2/mcpm.git
-cd mcpm
-pip install -e .
+A = A_from_timeseries(monitored_series)     # recovery rate from lag-1 autocorrelation
+print(A.value, A.source, A.caveats)
 
+D = D_response_diversity([                  # response diversity, not headcount
+    component_a_under_stress,
+    component_b_under_stress,
+])
+```
 
-Examples
-See examples/ directory for:
-	•	Basic system measurement
-	•	Energy cost integration
-	•	Replacement analysis (human vs AI vs robot)
-	•	Empathy type comparison
-	•	Golden ratio trust building
-License
-GPL-3.0 - This prevents proprietary capture while allowing research use.
-Citation
-If you use this framework in research:
+### Watching for a tipping point
 
-@software{mcpm2024,
-  title={Mathematical Collapse-Prevention Model},
-  author={JinnZ2},
-  year={2024},
-  url={https://github.com/JinnZ2/mcpm}
+A system approaching a transition recovers from perturbations more and
+more slowly, and that shows up in a monitored series before the
+transition does:
+
+```python
+from src.measurement.early_warning import critical_slowing_down, format_reading
+
+print(format_reading(critical_slowing_down(monitored_series)))
+```
+
+Flags are `CRITICAL_SLOWING_DOWN`, `PARTIAL_SIGNAL`, `NO_SIGNAL` or
+`INSUFFICIENT_DATA`. On the module's own synthetic benchmarks, ~75% of
+genuinely eroding systems raise a flag and ~8% of stationary ones do.
+**No signal is not evidence of safety** — roughly a third of real
+transitions give no advance warning at all, and abruptly-failing coupled
+systems give none by construction. The module says so in its own output.
+
+## Repository Structure
+
+```
+├── src/
+│   ├── core/
+│   │   ├── coherence_metric.py        # M(S) formula
+│   │   └── golden_ratio_trust.py      # trust emergence (φ-ratio chambers)
+│   └── measurement/
+│       ├── audit_bridge.py            # audits -> M(S) inputs
+│       ├── ai_forecast_audit.py       # forecast accuracy + compute burden
+│       ├── calibration.py             # cited derivations of R_e/A/D/L
+│       ├── coherence_verdict.py       # GREEN/AMBER/RED/BLACK signal layer
+│       ├── early_warning.py           # critical slowing down, rate tipping
+│       ├── empathy_types.py           # empathy paradigm comparison
+│       ├── multi_model_peer_review.py # AI-to-AI cross-validation
+│       ├── replacement_analysis.py    # replacement thermodynamics
+│       ├── sensitivity.py             # ∂M/∂x per input
+│       └── validation_timeline_audit.py
+├── business_audit/                    # business resilience self-audit
+├── dependency_audit/                  # refinery dependency graph
+├── premise_audit/                     # cross-domain premise validity
+├── substrate_audit/                   # substrate-aware audit
+├── examples/                          # worked scenarios
+├── docs/TRUTH_TELLING.md              # measurement vs control
+└── tests/                             # stdlib unittest suites
+```
+
+Every module has a runnable demo:
+
+```bash
+python -m src.core.coherence_metric
+python -m src.measurement.early_warning
+python -m src.measurement.calibration
+python -m src.measurement.audit_bridge
+```
+
+## Examples
+
+[`examples/run_community_year.py`](examples/run_community_year.py) walks a
+small rural community through twelve months of erosion, printing the
+signal trajectory month by month:
+
+```bash
+python examples/run_community_year.py
+```
+
+## Tests
+
+Stdlib `unittest`, no external runner. The suites are *falsifiable*: each
+test pins a claim the framework makes, so a broken claim fails a test.
+
+```bash
+python -m unittest discover -v tests
+```
+
+Run from the repository root — the audit-bridge tests import the
+top-level audit packages.
+
+## Important Distinctions
+
+**This framework is:** a measurement tool, a diagnostic, an efficiency
+calculator, a pattern descriptor.
+
+**This framework is not:** a control system, an optimization target, a
+social engineering tool, an intervention system.
+
+Measure reality. Don't enforce ideology.
+
+## Contributing
+
+Contributions must preserve the measurement focus and never add control
+mechanisms — no optimization loops, no intervention logic, no enforcement.
+Adding a measurement means stating its assumptions in its own output.
+
+## License
+
+MIT — see [LICENSE](LICENSE).
+
+Note that MIT permits proprietary use. If preventing proprietary capture
+matters more than permissive reuse, that is a licensing decision to
+revisit deliberately rather than a gap to patch.
+
+## Citation
+
+```bibtex
+@software{mcpm,
+  title  = {Mathematical Collapse-Prevention Model},
+  author = {JinnZ2},
+  url    = {https://github.com/JinnZ2/Mathematical-collapse-prevention-model}
 }
+```
 
-⚠️ Important Distinctions
-This Framework Is:
-	•	📊 A measurement tool (reveals truth)
-	•	🔬 A diagnostic system (shows health)
-	•	📈 An efficiency calculator (proves value)
-	•	🌱 A pattern descriptor (how collaboration emerges)
-This Framework Is NOT:
-	•	❌ A control system (doesn’t enforce)
-	•	❌ An optimization target (doesn’t prescribe)
-	•	❌ A social engineering tool (doesn’t manipulate)
-	•	❌ An intervention system (doesn’t force)
-Measure reality. Don’t enforce ideology.
-Contributing
-See CONTRIBUTING.md for guidelines.
-Key principle: All contributions must preserve measurement focus, never add control mechanisms.
+---
 
-“Energy accounting proves WHO is efficient. Geometric morality proves HOW to collaborate. Together: Complete truth-telling.”
-
+> "Energy accounting proves WHO is efficient. Geometric morality proves
+> HOW to collaborate. Together: Complete truth-telling."
