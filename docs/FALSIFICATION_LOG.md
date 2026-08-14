@@ -110,13 +110,15 @@ own right:
 **Still open.**
 - The MSF window `(ν₁, ν₂)` must be measured from the node dynamics. The
   module takes it as an input and cannot check it.
-- `1/φ²` in the placeholder is still aesthetic. The scalar-input case has
-  no derived answer.
 - The core `CoherenceMetric` default is *unchanged* — `C* = I/φ` is still
   what you get if you construct one without arguments. Changing it would
   silently move every existing reading, so the defect is documented
   rather than patched. **Anyone using the default is using the falsified
-  form.**
+  form.** Now pinned by
+  `tests/test_coupling_optimum_claims.py::DefaultCouplingOptimumTests`,
+  which measures the peak sitting exactly at zero coupling.
+- ~~`1/φ²` in the placeholder is still aesthetic.~~ **Closed by F-9**,
+  which ran it: it is worse than aesthetic.
 
 ---
 
@@ -339,6 +341,158 @@ did not work, and neither failure was visible from reading.
 
 ---
 
+## F-9 · The φ placeholder is a coarse stand-in for the derived optimum
+
+**[FALSIFIED]** · claimed 2026-08-13 (`a33657b`) · revised 2026-08-14
+
+This entry exists because F-2 left `1/φ²` in its **Still open** section
+and nothing had been run against it. This is that run.
+
+**Claim.** From `phi_coupling_optimum`'s own docstring: *"The shape is
+right and the golden ratio is not."* That is a claim of degree — the
+placeholder is asserted to be the correct kind of object, badly located.
+
+**Run.** `experiments/coupling_optimum.py`, reproducible with
+`python -m experiments.coupling_optimum`. `coupling_matrix(n, c)` is the
+complete graph `K_n` with uniform edge weight `c`, so `σ ≡ c` and
+`λ₂ = λ_N = n` — the two representations are directly comparable, not
+merely analogous. Hold each network fixed, sweep the global coupling
+scale, and let **each measure pick its own best scale on the same graph.**
+
+**Result.** The shape is not right either.
+
+| graph | σ\* Frobenius | peak f | σ\* physics | peak f | eigenratio |
+|---|---|---|---|---|---|
+| complete K₆ | **0.3820** | 1.0000 | 0.1491 | 1.0000 | 1.000 |
+| ring C₆ | **0.3820** | 0.0724 | 0.4472 | 1.0000 | 4.000 |
+| star S₆ | **0.3820** | 0.0540 | 0.3651 | 1.0000 | 6.000 |
+| path P₆ | **0.3820** | 0.0540 | 0.8944 | 1.0000 | 13.928 |
+| barbell (bridged) | **0.3820** | 0.0969 | 0.6325 | 1.0000 | 10.404 |
+| barbell (bridge **cut**) | **0.3820** | 0.0724 | none | 0.0000 | inf |
+
+Three findings, in ascending order of severity.
+
+1. **The Gaussian argmax is not a function of the network.** It is
+   `1/φ²` for every topology — provably, not coincidentally: absent
+   edges contribute a constant `(1/φ²)²` to the squared deviation
+   regardless of scale, so only present edges move the optimum. Physics
+   spreads the optimum over **6×** across the same five graphs, driven
+   entirely by the Laplacian spectrum.
+
+2. **It does not notice fragmentation.** The last two rows are one graph
+   with a single edge cut — the cut splits it into two disconnected
+   islands. Frobenius `f(C)` moves **0.0969 → 0.0724**, a change smaller
+   than the gap between an intact ring and an intact star. Physics
+   reports `FRAGMENTED_STRUCTURALLY`, `f(C) = 0`. **The term whose stated
+   job is to detect "too weak = fragmented" does not detect
+   fragmentation.**
+
+3. **The two measures are uncorrelated.** Over 200 connected random
+   graphs (4–8 nodes, seed 0), each measure at its own optimal scale:
+   **Pearson r = +0.055.** Frobenius peak mean 0.14; physics peak mean
+   0.995. The Gaussian form scores nearly every real network as
+   catastrophically mis-coupled *at its best possible scale*, because
+   `C*` requires every pair to be coupled — so a sparse network is
+   penalized for its absent edges, which is a statement about the target,
+   not about the system.
+
+Separately, on `K_n` the physics optimum is `σ* = √(ν₁ν₂)/n`, falling as
+`1/n` while the placeholder stays constant. Past **n = 11** with this
+window the placeholder sits *outside* the stable window: it reports
+`f(C) = 1` at exactly the coupling where the fastest mode is driven
+unstable.
+
+**Revised claim.** `1/φ²` is not a mislocated optimum. It answers a
+different question — *how entry-wise close is C to a matrix someone
+chose?* — and that question's answer is uncorrelated with coupling
+stability. **The real optimum is**
+
+```
+σ* = √( ν₁ν₂ / (λ₂ λ_N) )
+```
+
+a function of topology (`λ₂`, `λ_N`) *and* node dynamics (`ν₁`, `ν₂`).
+No constant can express it, and no fixed target matrix can either, since
+a fixed target cannot depend on the spectrum of the network it scores.
+Where the graph is known, use `coupling_physics`. Where only a scalar is
+available, the placeholder is what there is and should be read as an
+index, not as a coupling measurement.
+
+**Still open.**
+- **This does not currently produce wrong readings in the shipped code.**
+  All four audit bridges construct `n = 2`, where there is exactly one
+  topology (`K₂` = ring = path, eigenratio 1) and `n(n−1) = 2` is at its
+  minimum. The defect is **latent**, and the public API invites it:
+  `coupling_matrix(n, c)` and `phi_coupling_optimum(n)` both accept any
+  `n` and are documented as general. Pinned by
+  `BridgesUseTheSafestCaseTests`.
+- The `n = 2` agreement (σ\* = 0.447 vs 0.382) is a property of the
+  illustrative window, which requires `ν₁ν₂ = (n/φ²)²`. A different
+  measured window moves it.
+- Everything above is measured against **one** MSF window. The
+  topology-blindness result does not depend on the window; the `n = 11`
+  crossover does.
+- No real system's MSF window has been measured for this repository. The
+  physics side is correct *given* a window, and every window used here is
+  illustrative.
+
+---
+
+## F-10 · f(C) measures coupling
+
+**[FALSIFIED]** · claimed 2025-11-27 (`a154de4`) · revised 2026-08-14
+
+**Claim.** `f(C) = exp(−α‖C − C*‖²)` scores how well a system is coupled.
+
+**Run.** Hold the *per-edge* mistuning fixed at 0.10 and vary only the
+number of components.
+
+| n | f(C), α = 1 | f(C), α = 1/(n(n−1)) |
+|---|---|---|
+| 2 | 0.980199 | 0.990050 |
+| 5 | 0.818731 | 0.990050 |
+| 10 | 0.406570 | 0.990050 |
+| 20 | 0.022371 | 0.990050 |
+| 50 | 0.000000 | 0.990050 |
+| 100 | 0.000000 | 0.990050 |
+
+**Result.** With `α = 1` fixed, `f(C)` reads system **size** as much as
+system **coupling**. The squared Frobenius deviation for a uniform offset
+is `n(n−1)δ²`, growing quadratically in `n` while `α` stays 1. At n = 20
+a system mistuned by 0.10 per edge reads `f(C) = 0.022`, which drives
+`M(S)` negative on the coupling term alone; past n = 50 it is numerically
+zero, so **`M(S) = −L` for any large system no matter how well coupled
+it is.** Two systems with identical per-edge coupling quality get
+opposite verdicts because one is bigger.
+
+Note this cuts the other way for *localized* damage: a single badly
+mistuned edge gives the same `f(C)` at n = 2 and n = 50, because only
+two matrix entries moved. So the form is hypersensitive to uniform
+mistuning and insensitive to a single severed link — the opposite of
+what structural failure looks like (see F-9, finding 2).
+
+**Revised claim.** Not revised in code. `α = 1/(n(n−1))` makes the
+penalty per-edge and the reading exactly size-invariant (measured above,
+constant to nine places). **This is a repairable defect, unlike F-9's** —
+it lives inside the existing functional form rather than requiring a
+different one.
+
+**It has deliberately not been repaired.** Changing `α`'s default would
+silently move every reading the framework has ever produced, and whether
+to accept that is a decision for whoever depends on those readings, not
+a measurement. This is reported and pinned by `SizeInvarianceTests`,
+which will fail if either the defect or the fix changes character.
+
+**Still open.**
+- The right normalization may not be `1/(n(n−1))`. That constant makes
+  uniform mistuning size-invariant; it does nothing about the
+  localized-damage asymmetry, which is a property of using an entry-wise
+  norm at all.
+- Whether `α` should be a free parameter is itself unexamined. Nothing
+  in the framework says what `α = 1` means.
+
+---
+
 # Rejected alternatives
 
 Approaches that were tested and did not survive the test, so they never
@@ -459,14 +613,23 @@ which were.
 - **`replacement_analysis`** — the verdict thresholds separating
   THERMODYNAMICALLY_SUPERIOR from THERMODYNAMICALLY_STUPID are
   unvalidated cut points.
-- **The φ placeholder wherever it appears in a coupling optimum** — see
-  F-2. Aesthetic, and labelled as such in its own docstring.
 - **The GREEN/AMBER/RED band edges** in `coherence_verdict` — no
   calibration against observed collapses.
 - **Linear time-to-collapse projection** in `coherence_verdict` — a linear
   extrapolation of a metric whose whole premise is that systems approach
   transitions *non*-linearly. The one place the framework contradicts its
   own physics.
+
+**One item has left this list.** "The φ placeholder wherever it appears in
+a coupling optimum" sat here until it was run; it is now **F-9**, and the
+answer was worse than the entry assumed — not a mislocated optimum but a
+different quantity, uncorrelated with the one it names. That is the
+argument for keeping this section: an untested claim is not a
+probably-fine claim, and the only way to find out which is to run it.
+
+The mechanism for graduating an entry is `experiments/`. Write the probe
+so it prints its own numbers and reruns from one command, pin the
+findings in `tests/`, then move the item up into a numbered entry above.
 
 ---
 

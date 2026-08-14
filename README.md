@@ -267,6 +267,7 @@ systems give none by construction. The module says so in its own output.
 │   ├── substrate_audit/               # substrate-aware audit
 │   └── Meta-Framework-Note.md         # origin-era note
 ├── examples/                          # worked scenarios
+├── experiments/                       # probes that test the framework's own claims
 ├── docs/
 │   ├── TRUTH_TELLING.md               # measurement vs control
 │   └── FALSIFICATION_LOG.md           # what broke, and what replaced it
@@ -324,7 +325,7 @@ step of that loop, and a claim that survived a test looks identical to
 one that was never tested. So the rest of the loop is written down:
 [`docs/FALSIFICATION_LOG.md`](docs/FALSIFICATION_LOG.md).
 
-Eight claims this framework made and then broke, each with the run that
+Ten claims this framework made and then broke, each with the run that
 broke it, including:
 
 - **A single M(S) number is a reading.** Falsified by propagating input
@@ -348,6 +349,46 @@ The log ends with a **Never tested** section listing the claims still
 standing on nothing at all. That section is the point of the exercise: a
 framework that reports absent evidence as absent has to apply the rule to
 itself first.
+
+### Running the framework against itself
+
+`experiments/` holds the probes that move a claim out of *Never tested*.
+
+```bash
+python -m experiments.coupling_optimum
+```
+
+That one asked whether `1/φ²` is a rough estimate of the coupling
+optimum, as its own docstring claimed. It is not. Each measure was given
+its own best coupling scale on the same six networks:
+
+| graph | σ\* Frobenius | σ\* physics | eigenratio |
+|---|---|---|---|
+| complete K₆ | **0.3820** | 0.1491 | 1.000 |
+| ring C₆ | **0.3820** | 0.4472 | 4.000 |
+| star S₆ | **0.3820** | 0.3651 | 6.000 |
+| path P₆ | **0.3820** | 0.8944 | 13.928 |
+| barbell (bridged) | **0.3820** | 0.6325 | 10.404 |
+| barbell (bridge **cut**) | **0.3820** | none — fragmented | inf |
+
+The Gaussian optimum is `1/φ²` for every topology, because its argmax is
+not a function of the network. Cutting the one edge that holds the
+barbell together splits it into two islands and moves `f(C)` by 0.02 —
+**the term whose job is to detect "too weak = fragmented" does not detect
+fragmentation.** Over 200 random connected graphs the two measures
+correlate at **r = +0.055**.
+
+The real optimum, and it is not a constant:
+
+```
+σ* = √( ν₁ν₂ / (λ₂ λ_N) )        topology × dynamics
+```
+
+Findings are pinned in `tests/test_coupling_optimum_claims.py` and
+written up as **F-9** and **F-10**. Neither currently produces a wrong
+reading in shipped code — every audit bridge builds `n = 2`, where there
+is only one possible topology — but both are latent in a public API that
+accepts any `n`.
 
 ## Important Distinctions
 
