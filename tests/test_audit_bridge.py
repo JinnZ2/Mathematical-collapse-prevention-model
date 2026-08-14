@@ -10,16 +10,20 @@ import unittest
 
 import numpy as np
 
-from business_audit.business_resilience_framework import (
+from legacy.business_audit.business_resilience_framework import (
     BusinessState,
     full_audit,
     reference_profiles,
 )
-from dependency_audit.refinery_dependency_graph import (
+from legacy.dependency_audit.refinery_dependency_graph import (
     DependencyNode,
     build_us_refinery_graph,
 )
-from premise_audit.premise_cross_domain_audit import build_example_engine
+from legacy.premise_audit.premise_cross_domain_audit import build_example_engine
+from legacy.substrate_audit.substrate_aware_audit import (
+    reference_audit_honest_llm,
+    reference_audit_substrate_denying_subject,
+)
 from src.core.coherence_metric import PHI, CoherenceMetric
 from src.measurement.audit_bridge import (
     coupling_matrix,
@@ -29,10 +33,6 @@ from src.measurement.audit_bridge import (
     from_premise_audit,
     from_substrate_audit,
     phi_coupling_optimum,
-)
-from substrate_audit.substrate_aware_audit import (
-    reference_audit_honest_llm,
-    reference_audit_substrate_denying_subject,
 )
 
 

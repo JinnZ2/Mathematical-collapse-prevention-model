@@ -17,10 +17,17 @@ Mathematical Collapse-Prevention Model (MCPM) — a framework that measures syst
 
 ```
 ├── README.md                          # Main project documentation and formula reference
-├── Meta-Framework-Note.md             # Meta-commentary on automated suppression
 ├── LICENSE                            # MIT License
 ├── docs/
-│   └── TRUTH_TELLING.md              # Measurement vs Control philosophy
+│   ├── TRUTH_TELLING.md              # Measurement vs Control philosophy
+│   └── FALSIFICATION_LOG.md          # Claims that broke, the runs that broke them, what is still untested
+├── legacy/                            # Precedence record: work that came first, still live
+│   ├── README.md                     # First-appearance dates + what carries each forward
+│   ├── Meta-Framework-Note.md        # Meta-commentary on automated suppression
+│   ├── business_audit/               # Business resilience self-audit
+│   ├── dependency_audit/             # Refinery dependency graph
+│   ├── premise_audit/                # Cross-domain premise validity + validity reweighting
+│   └── substrate_audit/              # Four-layer substrate-aware audit
 ├── examples/
 │   ├── community_year.csv            # 12-month rural-community dataset
 │   └── run_community_year.py         # Loads CSV, prints M(S) + verdict per month
@@ -92,6 +99,12 @@ Propagates input ranges through M(S), because a point reading from five uncertai
 ### `src/measurement/audit_bridge.py`
 Connects all four standalone audit subsystems to the core metric — previously they produced verdicts M(S) never saw. `from_business_audit`, `from_dependency_graph`, `from_substrate_audit` and `from_premise_audit` each return a `BridgedSystem` (state + metric + calibrations + notes), where **every term assignment states its assumption in the output**. Supplies `phi_coupling_optimum` (diagonal 1/φ, off-diagonal 1/φ²) because the core default C* = I/φ has an off-diagonal target of zero, making "too weak = fragmented" unexpressible. The dependency bridge probes the graph across a stress gradient rather than reading declared attributes, and flags when zero diversity is an artifact of min-bottleneck propagation rather than a property of the system. The substrate bridge maps the audit's own cascade rule onto A (substrate denial blocks correction ⇒ A = 0 ⇒ BLACK) and scores D as viable routes from the three-band layer verdicts, not average health — average health is R_e's job, and an evenness measure would read four half-capacity layers as maximum diversity.
 
+### `legacy/`
+**Precedence record, not a graveyard.** Holds the standalone tools and origin documents that predate `src/` — all still imported, still exercised by the suite, still runnable via `python -m legacy.<pkg>.<module>`. `legacy/README.md` tables each entry's first-appearance date and commit against what carries its work now (`audit_bridge.from_*` for three of the four audits; `validity_weighted_reweighting` has no bridge yet, which is an opening, not a defect). Three files carry pre-MIT **CC0** headers, left as written because they are part of the record of what was released and when. `tests/test_legacy_imports.py` pins that every module here imports from the root and keeps a demo entry point, so the folder cannot rot into an archive that no longer runs. The rule the folder exists to enforce: **superseded work moves here and the log records why — it does not get deleted**, because deleting a superseded claim erases the evidence that the revision was earned.
+
+### `docs/FALSIFICATION_LOG.md`
+The loop the repo runs on — hypothesize → run → falsified → edit claim → search unknowns → rerun — kept where the code cannot show it. Entries are typed: **[FALSIFIED]** (shipped, ran, broke) versus **[REJECTED]** (obvious approach tested, did not survive, never shipped). Every entry ends with **Still open**; an entry with that section empty is not finished. Eight falsifications are recorded (unfalsifiable hand-supplied floats → `calibration`; `C* = I/φ` having no interior optimum → `coupling_physics`; point-estimate false precision → `uncertainty`; zero-flux-means-dead → `dormancy`; four audits M(S) never saw → `audit_bridge`; a same-day citation-weight normalization bug; a flat import broken from the repo root for three months because no test covered it; and a README command that raised `ModuleNotFoundError` because nothing runs the README). Three rejected alternatives are recorded with measured numbers, notably that a bare `|τ| ≥ 0.5` early-warning threshold fires on **45% of 60 stationary series** versus 5% surrogate-tested. **The file closes with a `Never tested` section** listing claims currently standing on nothing — `golden_ratio_trust`, `empathy_types` and `replacement_analysis` thresholds, the verdict band edges, and the linear time-to-collapse projection in a framework premised on non-linear approach. When a run changes a claim, add the entry with the fix, not after; numbers, not adjectives.
+
 ### `examples/`
 Worked scenarios that load real-shaped data and run it through the framework. `run_community_year.py` walks a small rural community through twelve months of erosion and prints the signal trajectory.
 
@@ -127,11 +140,16 @@ python -m src.measurement.coupling_physics
 python -m src.measurement.dormancy
 python -m src.measurement.uncertainty
 python -m src.measurement.audit_bridge
+python -m legacy.business_audit.business_resilience_framework
+python -m legacy.dependency_audit.refinery_dependency_graph
+python -m legacy.premise_audit.premise_cross_domain_audit
+python -m legacy.premise_audit.validity_weighted_reweighting
+python -m legacy.substrate_audit.substrate_aware_audit
 ```
 
-Run from the repository root. `audit_bridge` imports the top-level
-`business_audit` / `dependency_audit` packages, which resolve as namespace
-packages only from there.
+Run from the repository root. `audit_bridge` imports
+`legacy.business_audit` / `legacy.dependency_audit`, which resolve as
+namespace packages only from there.
 
 Run the test suite (stdlib `unittest`, no external test runner required):
 
@@ -156,13 +174,30 @@ python -m unittest discover -v tests
   is a statement about the data; it must never be phrased as a statement
   about the system's health.
 
+### Revising a Claim
+When a run breaks something the framework asserted, the revision is only
+half the work. **Record the loop in `docs/FALSIFICATION_LOG.md` with the
+fix, not after it** — otherwise the next reader cannot tell a claim that
+survived a test from one that was never tested, which is the distinction
+the whole framework rests on.
+
+- **Do not delete the superseded claim.** Its date still carries. If code
+  is retired, it moves to `legacy/` with an entry in `legacy/README.md`.
+- **Numbers, not adjectives.** "Fires too often" is not a result. "45% of
+  60 stationary series" is. Give the command that reproduces it.
+- **Never leave `Still open` empty.** A revision that closed every
+  unknown has not been looked at hard enough.
+- **A revision is not a validation.** If nothing has actually been run
+  against a claim, it belongs in the log's `Never tested` section — apply
+  "report absent evidence as absent" to the framework itself.
+
 ### Commit Messages
 - Capitalize first letter
 - Descriptive subject line (e.g., "Create coherence_metric.py", "Add Meta-Framework Note on Automated Suppression")
 - No conventional commit prefixes (no `feat:`, `fix:`, etc.)
 
 ### Tests & CI
-Stdlib `unittest` suites live in `tests/` — one file per module. They are *falsifiable*: each test pins a claim the framework makes (e.g. `zero diversity ⇒ BLACK signal`, `tribal empathy ⇒ negative M(S)`, `trust chamber growth follows the phi ratio`). GitHub Actions runs them on Python 3.9/3.11/3.12 via `.github/workflows/ci.yml`. No linter is configured yet.
+Stdlib `unittest` suites live in `tests/` — one file per module. They are *falsifiable*: each test pins a claim the framework makes (e.g. `zero diversity ⇒ BLACK signal`, `tribal empathy ⇒ negative M(S)`, `trust chamber growth follows the phi ratio`). GitHub Actions runs them on Python 3.9/3.11/3.12 via `.github/workflows/ci.yml`. No linter is configured yet. `tests/test_legacy_imports.py` is the exception to one-file-per-module: it pins that everything under `legacy/` stays importable from the repository root, closing the blind spot that let a flat import sit broken there for three months.
 
 ## Design Principles (Critical for AI Assistants)
 

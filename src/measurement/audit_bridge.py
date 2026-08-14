@@ -275,11 +275,11 @@ def _default_cascade(graph: Dict[str, Any], disrupted: Dict[str, float],
     bridge cannot drift from the propagation logic it claims to bridge.
     """
     try:
-        from dependency_audit.refinery_dependency_graph import cascade_disruption
+        from legacy.dependency_audit.refinery_dependency_graph import cascade_disruption
     except ImportError as exc:  # pragma: no cover - depends on run location
         raise ImportError(
-            "dependency_audit is not importable from here. Run from the "
-            "repository root, or pass cascade_fn= explicitly."
+            "legacy.dependency_audit is not importable from here. Run from "
+            "the repository root, or pass cascade_fn= explicitly."
         ) from exc
     return cascade_disruption(graph, disrupted, target)
 
@@ -761,8 +761,11 @@ def format_bridge(b: BridgedSystem) -> str:
 
 # Demo
 if __name__ == "__main__":
-    from business_audit.business_resilience_framework import full_audit, reference_profiles
-    from dependency_audit.refinery_dependency_graph import build_us_refinery_graph
+    from legacy.business_audit.business_resilience_framework import (
+        full_audit,
+        reference_profiles,
+    )
+    from legacy.dependency_audit.refinery_dependency_graph import build_us_refinery_graph
 
     for profile in reference_profiles():
         bridged = from_business_audit(full_audit(profile), energy_cost=None)
@@ -773,7 +776,7 @@ if __name__ == "__main__":
     print(format_bridge(graph_bridge))
     print()
 
-    from substrate_audit.substrate_aware_audit import (
+    from legacy.substrate_audit.substrate_aware_audit import (
         reference_audit_honest_llm,
         reference_audit_substrate_denying_subject,
     )
@@ -783,7 +786,7 @@ if __name__ == "__main__":
         print(format_bridge(from_substrate_audit(reference)))
         print()
 
-    from premise_audit.premise_cross_domain_audit import build_example_engine
+    from legacy.premise_audit.premise_cross_domain_audit import build_example_engine
 
     engine = build_example_engine()
     print(format_bridge(from_premise_audit(engine.epistemic_fragility_report())))

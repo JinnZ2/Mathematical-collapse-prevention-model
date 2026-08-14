@@ -260,14 +260,24 @@ systems give none by construction. The module says so in its own output.
 │       ├── sensitivity.py             # ∂M/∂x per input
 │       ├── uncertainty.py             # interval + Monte Carlo propagation
 │       └── validation_timeline_audit.py
-├── business_audit/                    # business resilience self-audit
-├── dependency_audit/                  # refinery dependency graph
-├── premise_audit/                     # cross-domain premise validity
-├── substrate_audit/                   # substrate-aware audit
+├── legacy/                            # work that came first, still live
+│   ├── business_audit/                # business resilience self-audit
+│   ├── dependency_audit/              # refinery dependency graph
+│   ├── premise_audit/                 # cross-domain premise validity
+│   ├── substrate_audit/               # substrate-aware audit
+│   └── Meta-Framework-Note.md         # origin-era note
 ├── examples/                          # worked scenarios
-├── docs/TRUTH_TELLING.md              # measurement vs control
+├── docs/
+│   ├── TRUTH_TELLING.md               # measurement vs control
+│   └── FALSIFICATION_LOG.md           # what broke, and what replaced it
 └── tests/                             # stdlib unittest suites
 ```
+
+`legacy/` is a **precedence record, not a graveyard.** Everything in it
+still imports, still runs, and is still exercised by the test suite. It
+holds the standalone tools that predate `src/`, each with the date it
+first appeared and what carries its work now — see
+[`legacy/README.md`](legacy/README.md).
 
 Every module has a runnable demo:
 
@@ -288,8 +298,11 @@ small rural community through twelve months of erosion, printing the
 signal trajectory month by month:
 
 ```bash
-python examples/run_community_year.py
+python -m examples.run_community_year
 ```
+
+Run from the repository root, as a module — the script imports `src`,
+which is only on the path from there.
 
 ## Tests
 
@@ -300,8 +313,41 @@ test pins a claim the framework makes, so a broken claim fails a test.
 python -m unittest discover -v tests
 ```
 
-Run from the repository root — the audit-bridge tests import the
-top-level audit packages.
+Run from the repository root — the audit-bridge tests import the packages
+under `legacy/` as namespace packages.
+
+## How the framework revises itself
+
+Hypothesize, run, watch the result falsify the claim, edit the claim,
+look for what is still unknown, rerun. The code only ever shows the last
+step of that loop, and a claim that survived a test looks identical to
+one that was never tested. So the rest of the loop is written down:
+[`docs/FALSIFICATION_LOG.md`](docs/FALSIFICATION_LOG.md).
+
+Eight claims this framework made and then broke, each with the run that
+broke it, including:
+
+- **A single M(S) number is a reading.** Falsified by propagating input
+  ranges: a point estimate of `+0.06` (GREEN) sits inside an interval of
+  `[−0.24, +0.54]` that is equally consistent with RED. → `uncertainty.py`
+- **Zero flux means dead.** Falsified by cryptobiosis — a tardigrade in
+  tun state reads exactly like a corpse, and *no flux measurement can fix
+  that*, because during dormancy there is no flux to measure. →
+  `dormancy.py`
+- **The coupling optimum sits at C\* = I/φ.** Falsified twice: the
+  default's off-diagonal target is zero, so there is no interior optimum
+  at all — and a bump around any chosen `C*` is an assertion, since
+  moving `C*` moves the optimum. → `coupling_physics.py`
+
+Plus rejected alternatives that never shipped but are worth not
+reinventing — a bare `|τ| ≥ 0.5` early-warning threshold fires on **45%
+of stationary series** that are approaching nothing, because overlapping
+rolling windows autocorrelate the indicator.
+
+The log ends with a **Never tested** section listing the claims still
+standing on nothing at all. That section is the point of the exercise: a
+framework that reports absent evidence as absent has to apply the rule to
+itself first.
 
 ## Important Distinctions
 
