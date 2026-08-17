@@ -29,11 +29,18 @@ from typing import Dict, List, Set, Optional, Tuple
 from collections import defaultdict
 import json
 
-from premise_cross_domain_audit import (
-    PremiseAuditEngine,
-    Premise,
-    DomainClaim,
-)
+try:
+    from .premise_cross_domain_audit import (
+        PremiseAuditEngine,
+        Premise,
+        DomainClaim,
+    )
+except ImportError:  # executed as a loose script from inside this directory
+    from premise_cross_domain_audit import (
+        PremiseAuditEngine,
+        Premise,
+        DomainClaim,
+    )
 
 
 # ============================================================
@@ -378,7 +385,10 @@ class ValidityReweighter:
 
 def build_example():
 
-    from premise_cross_domain_audit import build_example_engine
+    try:
+        from .premise_cross_domain_audit import build_example_engine
+    except ImportError:  # executed as a loose script from inside this directory
+        from premise_cross_domain_audit import build_example_engine
 
     engine = build_example_engine()
     rw = ValidityReweighter(engine)
