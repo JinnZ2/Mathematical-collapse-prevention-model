@@ -222,3 +222,17 @@ Stdlib `unittest` suites live in `tests/` — one file per module. They are *fal
   from the Laplacian spectrum and the node dynamics. Note its finding that the interior
   optimum holds for Class III dynamics only — for Class II there is a threshold and no
   upper penalty, so asserting a peak there invents a cost physics does not impose.
+
+<!-- clone-refspec-note v1 -->
+## Cloning and pushing
+Shallow clones are single-branch by default.
+Before pushing any branch other than main, run:
+
+    git config remote.origin.fetch '+refs/heads/*:refs/remotes/origin/*'
+    git fetch --depth 1
+
+Or clone with: git clone --depth 1 --no-single-branch <url>
+Without this, the first push of a new branch
+fails the tracking-ref check even when the
+commit landed.
+<!-- /clone-refspec-note v1 -->
